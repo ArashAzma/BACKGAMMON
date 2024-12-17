@@ -79,8 +79,6 @@ def parseInput(response):
 		return(100,100)
 	if response in exitTerms:
 		return (101, 101)
-	# if type(response) == type("Sample string"):
-	# 	return(101,101)
 	loc = findSeparation(response)
 	return(int(response[:loc]), int(response[loc+1:])) 
 

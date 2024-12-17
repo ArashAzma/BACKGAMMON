@@ -1,0 +1,18 @@
+Project explanation:
+
+Implementation of the Game "تخته نرد" in a 1v1 network computer. The two players are connected using P2P and play, chat together and there is Main Server.
+The Main server connects the players together but no one has the address of the main server and connection of players is made using *Onion Routing*.
+
+Start of Game:
+
+A player makes an request to the server. The server shows the active players whom already showed that they are ready to play. 
+When user enters the address of the second player, The server assigns a socket to this player and after getting the accept message from the second player The game starts.
+After this the players play the game together. after each turn the player whose Its his turn, sends a message to the server.
+The server rolls the dice and tells the server the number of the dice. the other player doesn't know the number of the dice.
+The players can chat to each other but the server cant read the chats.
+At the end the player that ended the game sends an End message to the server, the server checks if the player has ended the game or not and ends it.
+the two players can play again if they want with the previous addresses.
+
+* The players dont directly send messages to server and they send messages to an identified router.
+
+https://chatgpt.com/c/675742c8-1198-8009-ba47-7ca9923794dc
