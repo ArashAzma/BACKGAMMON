@@ -52,7 +52,6 @@ def connect_through_onion():
     
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
     data = data.decode('utf-8')
-    print('data', data)
     if data == 'ready':
         print("Connected to server through onion network...")
         
@@ -69,10 +68,10 @@ def connect_through_onion():
 def run_client(server_host=server_host, server_port=SERVER_PORT):
     opponent, first_relay = connect_through_onion()
     
-    # listener = threading.Thread(target=listen_loop, args=(,))
-    # listener.daemon = True
-    # listener.start()
+    listener = threading.Thread(target=listen_loop)
+    listener.daemon = True
+    listener.start()
     
-    # send_message(opponent)
+    send_message(opponent)
 
 run_client()

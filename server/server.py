@@ -2,6 +2,7 @@ import socket
 import threading
 import ast
 import time
+import sys
 
 SERVER = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5053
@@ -80,3 +81,4 @@ def start_server():
     server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
 
 start_server()
+sys.exit(0)
