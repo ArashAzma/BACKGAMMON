@@ -1,13 +1,11 @@
 import socket
 import threading
 import sys
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization, hashes
 
 SERVER_PORT = 5053
 ONION_PORT = 6001
 BUFFER_SIZE = 1024
-server_host = '10.0.0.1'
+server_host = socket.gethostbyname(socket.gethostname())
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client_socket.bind((server_host, 0)) 
