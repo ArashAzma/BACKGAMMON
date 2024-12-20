@@ -26,11 +26,11 @@ def relay_node(server_address, relay_address, next_address, is_end_node, index, 
                 relay_socket.sendto(decrypted_message, server_address)
             else:
                 relay_socket.sendto(decrypted_message, next_address)
-                
+                   
             upstream_address = addr
-            
             response, server_addr = relay_socket.recvfrom(buffer_size)
-            relay_socket.sendto(response, upstream_address)
+            encrypted_response = encrypt_message(RELAY_KEYS[index], response)
+            relay_socket.sendto(encrypted_response, upstream_address)
             # print(f'\t{relay_address} -> {upstream_address}')
         except Exception as e:
             print(f"Relay error: {e}")

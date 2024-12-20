@@ -53,6 +53,10 @@ def connect_through_onion():
     client_socket.sendto(connection_msg, first_relay)
     
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
+    
+    for key in (RELAY_KEYS):
+        data = decrypt_message(key, data)
+    
     data = data.decode()
     if data == 'ready':
         print("Connected to server through onion network...")
