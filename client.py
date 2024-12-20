@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+from utils.key import *  
 
 SERVER_PORT = 5053
 ONION_PORT = 6001
@@ -35,8 +36,11 @@ def send_message(opponent):
         sys.exit(0)
 
 def create_onion_message(message, destination):
-    full_message = f"{destination[0]}:{destination[1]}:0:{message}".encode('utf-8')
-    current_message = full_message
+    current_message = f"{destination[0]}:{destination[1]}:0:{message}".encode()
+    
+    for key in reversed(RELAY_KEYS):
+        print(f'Message: {current_message.hex()[:20]}')
+        current_message = encrypt_message(key, current_message)
     
     return current_message
 
@@ -49,7 +53,7 @@ def connect_through_onion():
     client_socket.sendto(connection_msg, first_relay)
     
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
-    data = data.decode('utf-8')
+    data = data.decode()
     if data == 'ready':
         print("Connected to server through onion network...")
         

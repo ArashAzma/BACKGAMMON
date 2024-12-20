@@ -3,28 +3,29 @@ import threading
 import ast
 import time
 import sys
+from utils.key import *  
 
 SERVER = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5053
 BUFFER_SIZE = 1024
 
-def relay_node(server_address, relay_address, next_address, is_end_node, buffer_size=1024):
+def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     relay_socket.bind(relay_address)
     
-    print(f"Relay Node {relay_address} initialized")
+    print(f"{index} Relay Node {relay_address} initialized")
     upstream_address = None
     
     while True:
         try:
             data, addr = relay_socket.recvfrom(buffer_size)
-            decrypted_message = data.decode('utf-8')
-            # print(f'\t{addr} -> {relay_address}\tMessage: {decrypted_message}')
+            decrypted_message = decrypt_message(RELAY_KEYS[index], data)
+            print(f'\t{addr} -> {relay_address}\tMessage: {decrypted_message.hex()[:20]}')
             
             if is_end_node:
-                relay_socket.sendto(decrypted_message.encode('utf-8'), server_address)
+                relay_socket.sendto(decrypted_message, server_address)
             else:
-                relay_socket.sendto(decrypted_message.encode('utf-8'), next_address)
+                relay_socket.sendto(decrypted_message, next_address)
                 
             upstream_address = addr
             
@@ -46,7 +47,7 @@ def setup_onion_routing(host):
         
         threading.Thread(
             target=relay_node, 
-            args=(server_address, relay_addresses[i], next_address, is_end_node)
+            args=(server_address, relay_addresses[i], next_address, is_end_node, i)
         ).start()
     
     return relay_addresses
