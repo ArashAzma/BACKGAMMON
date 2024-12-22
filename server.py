@@ -8,6 +8,7 @@ from utils.key import *
 SERVER = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5053
 BUFFER_SIZE = 2048
+clients = []
 
 def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -52,11 +53,14 @@ def setup_onion_routing(host):
     
     return relay_addresses
 
+
+#exactly the previous function with diffrent ports
 def setup_onion_routing_toClient(host):
-    relay_ports = [6004, 6005, 6006]
-    relay_addresses = [(SERVER, port) for port in (relay_ports)]
-    server_address  = (SERVER, host)
     
+    relay_ports = [6004, 6005, 6006]
+    relay_addresses = [(SERVER, port) for port in relay_ports]
+    server_address  = (SERVER, host)
+
     for i in range(len(relay_addresses)):
         next_address = relay_addresses[i+1] if i < len(relay_addresses)-1 else None
         is_end_node = i == len(relay_addresses) - 1
@@ -68,6 +72,27 @@ def setup_onion_routing_toClient(host):
     
     return relay_addresses
 
+def match_opponent():
+    port = 5555
+    server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server.bind((SERVER, port))
+    print("im waiting for clients to choose their opponents...")
+    setup_onion_routing_toClient(port)
+    clients, address = server.recvfrom(BUFFER_SIZE)
+    clients = clients.decode('utf-8')
+    print(clients)
+    client1, client2 = clients.split(':')[-2:]
+    client1 = (SERVER, client1)
+    client2 = (SERVER, client2)
+    print(client1)
+    try :
+        clients.remove(client1)
+        clients.remove(client2)
+    except Exception as e:
+        print(f"clients deleting error: {e}")
+    server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
+    server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
+
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -75,9 +100,15 @@ def start_server():
     print(f"Server listening on ({SERVER}, {SERVER_PORT})")
     setup_onion_routing(SERVER_PORT)
     
-    clients = []
+    #make a thread for matching clients
+    threading.Thread(
+        target=match_opponent, 
+        args=()
+    ).start()
+
+    # ---------------------------------
     while(True):
-        while len(clients) < 2:
+        while True:
             data, address = server.recvfrom(BUFFER_SIZE)
             data = data.decode('utf-8')
             truth_bit, client_address = data.split(':')[-2:]
@@ -92,17 +123,16 @@ def start_server():
             if(client_address not in clients):
                 clients.append(client_address) 
                 server.sendto('ready'.encode('utf-8'), address)
-        
-        client1, client2 = clients
-        clients.pop()
-        clients.pop()
+        # client1, client2 = clients
+        # clients.pop()
+        # clients.pop()
         time.sleep(.1)
         # setup_onion_routing_toClient(client2)
         # server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), (SERVER, 6004))
         # setup_onion_routing_toClient(client1)
         # server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), 6003)
-        server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
-        server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
+        # server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
+        # server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
     
 start_server()
 sys.exit(0)
