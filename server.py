@@ -78,16 +78,18 @@ def match_opponent():
     server.bind((SERVER, port))
     print("im waiting for clients to choose their opponents...")
     setup_onion_routing_toClient(port)
-    clients, address = server.recvfrom(BUFFER_SIZE)
-    clients = clients.decode('utf-8')
+    clients_op, address = server.recvfrom(BUFFER_SIZE)
+    clients_op = clients_op.decode('utf-8')
     print(clients)
-    client1, client2 = clients.split(':')[-2:]
-    client1 = (SERVER, client1)
-    client2 = (SERVER, client2)
+    client1, client2 = clients_op.split(':')[-2:]
+    client1 = (SERVER, int(client1))
+    client2 = (SERVER, int(client2))
     print(client1)
+    print(client2)
     try :
         clients.remove(client1)
         clients.remove(client2)
+        print("deleted!")
     except Exception as e:
         print(f"clients deleting error: {e}")
     server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
