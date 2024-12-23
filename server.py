@@ -72,6 +72,25 @@ def setup_onion_routing_toClient(host):
     
     return relay_addresses
 
+
+#exactly the previous function with diffrent ports
+def setup_onion_routing_toClientt(host):
+    
+    relay_ports = [6007, 6008, 6009]
+    relay_addresses = [(SERVER, port) for port in relay_ports]
+    server_address  = (SERVER, host)
+
+    for i in range(len(relay_addresses)):
+        next_address = relay_addresses[i+1] if i < len(relay_addresses)-1 else None
+        is_end_node = i == len(relay_addresses) - 1
+        
+        threading.Thread(
+            target=relay_node, 
+            args=(server_address, relay_addresses[i], next_address, is_end_node, i)
+        ).start()
+    
+    return relay_addresses
+
 def match_opponent():
     port = 5555
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -80,21 +99,29 @@ def match_opponent():
     setup_onion_routing_toClient(port)
     clients_op, address = server.recvfrom(BUFFER_SIZE)
     clients_op = clients_op.decode('utf-8')
-    print(clients)
     client1, client2 = clients_op.split(':')[-2:]
     client1 = (SERVER, int(client1))
     client2 = (SERVER, int(client2))
-    print(client1)
-    print(client2)
-    try :
-        clients.remove(client1)
-        clients.remove(client2)
-        print("deleted!")
-    except Exception as e:
-        print(f"clients deleting error: {e}")
-    server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
-    server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
-
+    server.sendto(f"request:do you wanna play with {client1[1]}".encode(), client2)
+    setup_onion_routing_toClientt(port)
+    client_ans, address = server.recvfrom(BUFFER_SIZE)
+    print("i recieved that")
+    client_ans = client_ans.decode('utf-8')
+    print("i recieved that")
+    if client_ans == "accept" :
+        print("sent accept")
+        server.sendto(f"ans:accepted".encode(), client1)       
+        print("i sent accept")
+        try :
+            clients.remove(client1)
+            clients.remove(client2)
+            print("deleted!")
+        except Exception as e:
+            print(f"clients deleting error: {e}")
+        server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
+        server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
+    else : 
+        server.sendto("ans:notAccepted".encode(), client1)       
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
