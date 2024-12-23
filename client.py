@@ -63,7 +63,7 @@ def send_request (first_relay_opponent) :
 def get_ans(ans) :
     global state, opponent, opponent_port, alone
     if ans == "accepted" :
-        opponent = (server_host, opponent_port)
+        opponent = (server_host, int(opponent_port))
         print("im here")
         alone = False
     else : 
@@ -82,7 +82,7 @@ def accept(first_relay_opponent) :
     choose_opoonent_msg = create_onion_message_ans("accept")
     client_socket.sendto(choose_opoonent_msg,(server_host, 6007))
     opponent_port = requested
-    opponent = (opponent_port, server_host)
+    opponent = (server_host, int(opponent_port))
     print("i sent it to server")
     alone = False
     return
