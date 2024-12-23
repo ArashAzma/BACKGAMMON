@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+from time import sleep
 from utils.key import *  
 
 SERVER_PORT = 5053
@@ -52,19 +53,22 @@ def create_onion_message(message, destination):
 
 
 def send_request (first_relay_opponent) :
-    global opponent_port
+    global opponent_port, state
+    state = "waiting"
     opponent_port = input()
     choose_opoonent_msg = create_onion_message_opponent(my_address[1], opponent_port)
     client_socket.sendto(choose_opoonent_msg, first_relay_opponent)
     return
 
 def get_ans(ans) :
-    global opponent, opponent_port, alone
+    global state, opponent, opponent_port, alone
     if ans == "accepted" :
         opponent = (server_host, opponent_port)
+        print("im here")
         alone = False
     else : 
         print("not accepted")
+    state = None
     return
 
 
@@ -74,23 +78,28 @@ def decline(first_relay_opponent):
     return
 
 def accept(first_relay_opponent) :
-    global alone
+    global alone, opponent, requested
     choose_opoonent_msg = create_onion_message_ans("accept")
     client_socket.sendto(choose_opoonent_msg,(server_host, 6007))
+    opponent_port = requested
+    opponent = (opponent_port, server_host)
     print("i sent it to server")
     alone = False
     return
 
 def requestListen () :
-    global client_socket
+    global client_socket, requested
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
     print(f"Received data: {data} from {addr}")
     data = data.decode('utf-8')
-    
     data1, data2 = data.split(':')[-2:]
-    if data1 == "request":    
+    if data1 == "request": 
+        print("im in request")
+        requested = data2.split("with ")[-1]   
+        print(requested)
         print(data2)
     elif data1 == "ans":
+        print(data2)
         get_ans(data2)
 
 
@@ -114,7 +123,7 @@ def create_onion_message_ans(ans):
 
 
 def connect_through_onion():
-    global opponent
+    global opponent, state
     server_address  = (server_host, SERVER_PORT)
     first_relay = (server_host, ONION_PORT)
     first_relay_opponent = (server_host, ONION_PORT_OPPONENT)
@@ -141,11 +150,12 @@ def connect_through_onion():
             if state == "request" :
                 print("choose your opponent")
                 send_request(first_relay_opponent)
+                while state == "waiting" :
+                    sleep(0.1)
             elif state == "accept" :
                 accept(first_relay_opponent)
             elif state == "decline" :
                 decline(first_relay_opponent)
-        
         print(f"ME {my_address} -- OPPONENT{opponent}")
         
         return first_relay
@@ -153,8 +163,8 @@ def connect_through_onion():
         raise ConnectionError("Failed to connect through onion network")
 
 def run_client(server_host=server_host, server_port=SERVER_PORT):
+    global opponent
     first_relay = connect_through_onion()
-    
     listener = threading.Thread(target=listen_loop)
     listener.daemon = True
     listener.start()

@@ -118,8 +118,8 @@ def match_opponent():
             print("deleted!")
         except Exception as e:
             print(f"clients deleting error: {e}")
-        server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
-        server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
+        # server.sendto(f"{client1[0]} {client1[1]} {SERVER_PORT}".encode(), client2)
+        # server.sendto(f"{client2[0]} {client2[1]} {SERVER_PORT}".encode(), client1)
     else : 
         server.sendto("ans:notAccepted".encode(), client1)       
 
