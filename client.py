@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 from time import sleep
+import pickle
 from utils.key import *  
 
 SERVER_PORT = 5053
@@ -51,14 +52,12 @@ def create_onion_message(message, destination):
     
     return current_message
 
-
-def send_request (first_relay_opponent) :
+def send_request(first_relay_opponent) :
     global opponent_port, state
     state = "waiting"
     opponent_port = input()
     choose_opoonent_msg = create_onion_message_opponent(my_address[1], opponent_port)
     client_socket.sendto(choose_opoonent_msg, first_relay_opponent)
-    return
 
 def get_ans(ans) :
     global state, opponent, opponent_port, alone
@@ -69,8 +68,6 @@ def get_ans(ans) :
     else : 
         print("not accepted")
     state = None
-    return
-
 
 def decline(first_relay_opponent):
     choose_opoonent_msg = create_onion_message_ans("decline")
@@ -87,7 +84,7 @@ def accept(first_relay_opponent) :
     alone = False
     return
 
-def requestListen () :
+def requestListen() :
     global client_socket, requested
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
     print(f"Received data: {data} from {addr}")
@@ -102,7 +99,6 @@ def requestListen () :
         print(data2)
         get_ans(data2)
 
-
 def create_onion_message_opponent(me, opponent):
     current_message = f"{me}:{opponent}".encode()
     
@@ -116,11 +112,28 @@ def create_onion_message_ans(ans):
     current_message = f"{ans}".encode()
     
     for key in reversed(RELAY_KEYS):
-        print(f'Message: {current_message.hex()[:20]}')
+        # print(f'Message: {current_message.hex()[:20]}')
         current_message = encrypt_message(key, current_message)
     
     return current_message
 
+def show_online_users(clients):
+    users = clients.copy()
+    users.remove(my_address)
+            
+    if(len(users) > 0):
+        print('\nOnline players:')
+        for client in users:
+            print('\t',client[1])
+    else:
+        print('Nobody is online')
+
+def decrypt_onion_message(data, requires_decode=True):
+    for key in (RELAY_KEYS):
+        data = decrypt_message(key, data)
+    if requires_decode:
+        data = data.decode()
+    return data
 
 def connect_through_onion():
     global opponent, state
@@ -133,13 +146,14 @@ def connect_through_onion():
     client_socket.sendto(connection_msg, first_relay)
     
     data, addr = client_socket.recvfrom(BUFFER_SIZE)
-    
-    for key in (RELAY_KEYS):
-        data = decrypt_message(key, data)
-    
-    data = data.decode()
+    data = decrypt_onion_message(data)
     if data == 'ready':
         print("Connected to server through onion network...")
+        data, _ = client_socket.recvfrom(BUFFER_SIZE)
+        data = decrypt_onion_message(data, False)
+        clients = pickle.loads(data)
+        show_online_users(clients)
+    
         requestListener = threading.Thread(target=requestListen)
         requestListener.daemon = True
         requestListener.start()
@@ -163,6 +177,7 @@ def connect_through_onion():
         raise ConnectionError("Failed to connect through onion network")
 
 def run_client(server_host=server_host, server_port=SERVER_PORT):
+    print(f'\nMy Address {my_address} \n')
     global opponent
     first_relay = connect_through_onion()
     listener = threading.Thread(target=listen_loop)

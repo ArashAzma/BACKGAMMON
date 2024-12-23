@@ -1,9 +1,9 @@
 import socket
 import threading
 import ast
-import time
 import sys
 from utils.key import *  
+import pickle
 
 SERVER = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5053
@@ -13,26 +13,34 @@ clients = []
 def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     relay_socket.bind(relay_address)
-    
     print(f"{index} Relay Node {relay_address} initialized")
+
     upstream_address = None
+    upstream_count = 0
     
+
     while True:
         try:
             data, addr = relay_socket.recvfrom(buffer_size)
-            decrypted_message = decrypt_message(RELAY_KEYS[index], data)
-            print(f'\t{addr} -> {relay_address}\tMessage: {decrypted_message.hex()[:20]}')
             
-            if is_end_node:
-                relay_socket.sendto(decrypted_message, server_address)
-            else:
-                relay_socket.sendto(decrypted_message, next_address)
-                   
-            upstream_address = addr
-            response, server_addr = relay_socket.recvfrom(buffer_size)
-            encrypted_response = encrypt_message(RELAY_KEYS[index], response)
-            relay_socket.sendto(encrypted_response, upstream_address)
-            # print(f'\t{relay_address} -> {upstream_address}')
+            if(addr == upstream_address or upstream_address is None):
+                decrypted_message = decrypt_message(RELAY_KEYS[index], data)
+                print(f'\t{addr} -> {relay_address}\tMessage: {decrypted_message.hex()[:20]}')
+
+                if is_end_node:
+                    relay_socket.sendto(decrypted_message, server_address)
+                else:
+                    relay_socket.sendto(decrypted_message, next_address)
+                
+                upstream_address = addr
+            else:  
+                encrypted_response = encrypt_message(RELAY_KEYS[index], data)
+                relay_socket.sendto(encrypted_response, upstream_address)
+                upstream_count+=1
+                if(upstream_count==2):
+                    upstream_count=0
+                    upstream_address = None
+
         except Exception as e:
             print(f"Relay error: {e}")
             break
@@ -115,6 +123,7 @@ def start_server():
             if(client_address not in clients):
                 clients.append(client_address) 
                 server.sendto('ready'.encode('utf-8'), address)
-        # time.sleep(.1)
+                serialized_clients = pickle.dumps(clients)
+                server.sendto(serialized_clients, address)
 start_server()
 sys.exit(0)
