@@ -3,6 +3,7 @@ import threading
 import sys
 from time import sleep
 import pickle
+import pygame
 from utils.key import *  
 from utils.constants import * 
 
@@ -15,28 +16,8 @@ alone = True
 opponent = None
 opponent_port = None
 
-def listen_loop(buffer_size=BUFFER_SIZE):
-    while True:
-        try:
-            data, _ = client_socket.recvfrom(buffer_size)
-            print(f"\rOpponent: {data.decode()}\n> ", end='')
-        except Exception as e:
-            print(f"Listen error: {e}")
-            break
-        
-def send_message(opponent):
-    try:
-        while True:
-            message = input("> ")
-            if message.lower() == 'q':
-                break
-            
-            client_socket.sendto(message.encode(), opponent)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        client_socket.close()
-        sys.exit(0)
+messages = []
+input_text = ""
 
 def create_onion_message(message, message_type: MessageType=None):
     if message_type is None:
@@ -159,14 +140,92 @@ def connect_through_onion():
     else:
         raise ConnectionError("Failed to connect through onion network")
 
-def run_client(SERVER=SERVER, server_port=SERVER_PORT):
-    print(f'\nMy Address {my_address} \n')
-    global opponent
-    connect_through_onion()
-    listener = threading.Thread(target=listen_loop)
-    listener.daemon = True
-    listener.start()
-    
-    send_message(opponent)
+def listen_loop(buffer_size=BUFFER_SIZE):
+    global messages
+    while True:
+        try:
+            data, _ = client_socket.recvfrom(buffer_size)
+            data = data.decode()
+            if data.startswith("CHAT:"):
+                received_message = data[5:]
+                messages.append(f"Opponent: {received_message}")
+        except Exception as e:
+            messages.append(f"Listen error: {e}")
+            break
+        
+def send_message(opponent):
+    try:
+        while True:
+            message = input("> ")
+            if message.lower() == 'q':
+                break
+            client_socket.sendto(f"CHAT:{message}".encode(), opponent)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        client_socket.close()
+        sys.exit(0)
+        
+def game_loop(screen, font):
+    global input_text, messages
 
+    clock = pygame.time.Clock()
+
+    while True:
+        screen.fill(WHITE)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if input_text.lower() == "q":
+                        pygame.quit()
+                        sys.exit()
+                    client_socket.sendto(f"CHAT:{input_text}".encode(), opponent)
+                    messages.append(f"You: {input_text}")
+                    input_text = "" 
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+        y_offset = 10
+        for message in messages[-5:]:
+            if message.startswith("You:"):
+                message = message[4:]
+                x_offset = WINDOW_SIZE / 3 * 2
+            else:
+                message = message[9:]
+                x_offset = 10
+                
+            text_surface = font.render(message, True, BLACK)
+            screen.blit(text_surface, (x_offset, y_offset))
+            y_offset += FONT_SIZE + 5
+
+        input_box = pygame.Rect(20, 140, WINDOW_SIZE-40, 20)
+        pygame.draw.rect(screen, GRAY, input_box)
+        pygame.draw.rect(screen, BLACK, input_box, 2)
+
+        input_surface = font.render(input_text, True, BLACK)
+        screen.blit(input_surface, (input_box.x + 5, input_box.y + 5))
+
+        pygame.display.flip()
+        clock.tick(30)  
+
+def run_client():
+    global opponent
+    
+    print(f'\nMy Address {my_address} \n')
+    if connect_through_onion():
+    
+        pygame.init()
+        screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        font = pygame.font.Font(None, FONT_SIZE)
+        listener = threading.Thread(target=listen_loop)
+        listener.daemon = True
+        listener.start()
+        game_loop(screen, font)
+    
 run_client()
