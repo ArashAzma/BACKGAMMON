@@ -18,7 +18,7 @@ opponent_port = None
 def listen_loop(buffer_size=BUFFER_SIZE):
     while True:
         try:
-            data, addr = client_socket.recvfrom(buffer_size)
+            data, _ = client_socket.recvfrom(buffer_size)
             print(f"\rOpponent: {data.decode()}\n> ", end='')
         except Exception as e:
             print(f"Listen error: {e}")
@@ -38,8 +38,11 @@ def send_message(opponent):
         client_socket.close()
         sys.exit(0)
 
-def create_onion_message(message, message_type: MessageType):
-    current_message = f"{message}:{message_type.value}".encode()
+def create_onion_message(message, message_type: MessageType=None):
+    if message_type is None:
+        current_message = f"{message}".encode()
+    else:
+        current_message = f"{message}:{message_type.value}".encode()
     
     for key in reversed(RELAY_KEYS):
         # print(f'Message: {current_message.hex()[:20]}')
@@ -66,14 +69,14 @@ def get_ans(ans) :
         print("not accepted")
     state = None
 
-def decline(first_relay_opponent):
-    choose_opoonent_msg = create_onion_message_ans("decline")
+def decline():
+    choose_opoonent_msg = create_onion_message("decline", None)
     client_socket.sendto(choose_opoonent_msg, (SERVER, 6006))
     return
 
-def accept(first_relay_opponent) :
+def accept() :
     global alone, opponent, requested
-    choose_opoonent_msg = create_onion_message_ans("accept")
+    choose_opoonent_msg = create_onion_message("accept", None)
     client_socket.sendto(choose_opoonent_msg, (SERVER, 6006))
     opponent_port = requested
     opponent = (SERVER, int(opponent_port))
@@ -83,7 +86,7 @@ def accept(first_relay_opponent) :
 def requestListen() :
     global client_socket, requested
     while alone:
-        data, addr = client_socket.recvfrom(BUFFER_SIZE)
+        data, _ = client_socket.recvfrom(BUFFER_SIZE)
         data = decrypt_onion_message(data)
         
         data1, data2 = data.split(':')[-2:]
@@ -94,23 +97,6 @@ def requestListen() :
         elif data1 == "ans":
             get_ans(data2)
     
-def create_onion_message_opponent(me, opponent):
-    current_message = f"{me}:{opponent}".encode()
-    
-    for key in reversed(RELAY_KEYS):
-        print(f'Message: {current_message.hex()[:20]}')
-        current_message = encrypt_message(key, current_message)
-    
-    return current_message
-
-def create_onion_message_ans(ans):
-    current_message = f"{ans}".encode()
-    
-    for key in reversed(RELAY_KEYS):
-        current_message = encrypt_message(key, current_message)
-    
-    return current_message
-
 def show_online_users(clients):
     users = clients.copy()
     users.remove(my_address)
@@ -132,7 +118,6 @@ def decrypt_onion_message(data, requires_decode=True):
 
 def connect_through_onion():
     global opponent, state
-    server_address  = (SERVER, SERVER_PORT)
     first_relay = (SERVER, ONION_PORT)
     first_relay_opponent = (SERVER, ONION_PORT)
     
@@ -141,7 +126,7 @@ def connect_through_onion():
     
     client_socket.sendto(connection_msg, first_relay)
     
-    data, addr = client_socket.recvfrom(BUFFER_SIZE)
+    data, _ = client_socket.recvfrom(BUFFER_SIZE)
     data = decrypt_onion_message(data)
     if data == 'ready':
         print("Connected to server through onion network...")
@@ -157,15 +142,16 @@ def connect_through_onion():
         # get opponent port that he wanna connect to
         while alone :
             state = input()
-            if state == "request" :
-                print("choose your opponent")
-                send_request(first_relay_opponent)
-                while state == "waiting" :
-                    sleep(0.1)
-            elif state == "accept" :
-                accept(first_relay_opponent)
-            elif state == "decline" :
-                decline(first_relay_opponent)
+            match state:
+                case "request":
+                    print("choose your opponent")
+                    send_request(first_relay_opponent)
+                    while state == "waiting" :
+                        sleep(0.1)
+                case "accept":
+                    accept()
+                case "decline":
+                    decline()
        
        
         print(f"ME {my_address} -- OPPONENT{opponent}")
@@ -176,7 +162,7 @@ def connect_through_onion():
 def run_client(SERVER=SERVER, server_port=SERVER_PORT):
     print(f'\nMy Address {my_address} \n')
     global opponent
-    first_relay = connect_through_onion()
+    connect_through_onion()
     listener = threading.Thread(target=listen_loop)
     listener.daemon = True
     listener.start()
