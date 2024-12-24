@@ -114,11 +114,9 @@ def start_server():
             data = data.decode('utf-8')
             message_type, client_address = data.split(':')[-2:]
             
-            print('message_type', message_type)
-            print('MessageType.CONNECT', MessageType.CONNECT.value)
             match message_type:
                 case MessageType.CONNECT.value:
-                    print(f"\n**Connection from {address} Message: {client_address}\n")
+                    print(f"\n------Connection from {address} Message: {client_address}------\n")
                     client_address = ast.literal_eval(client_address)
 
                     if(client_address not in clients):
