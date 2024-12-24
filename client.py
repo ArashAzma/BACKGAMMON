@@ -4,6 +4,7 @@ import sys
 from time import sleep
 import pickle
 from utils.key import *  
+from utils.types import *  
 
 SERVER_PORT = 5053
 ONION_PORT = 6001
@@ -43,8 +44,8 @@ def send_message(opponent):
         client_socket.close()
         sys.exit(0)
 
-def create_onion_message(message, destination):
-    current_message = f"{destination[0]}:{destination[1]}:0:{message}".encode()
+def create_onion_message(message, destination, message_type: MessageType):
+    current_message = f"{destination[0]}:{destination[1]}:{message_type.value}:{message}".encode()
     
     for key in reversed(RELAY_KEYS):
         print(f'Message: {current_message.hex()[:20]}')
@@ -141,7 +142,7 @@ def connect_through_onion():
     first_relay = (server_host, ONION_PORT)
     first_relay_opponent = (server_host, ONION_PORT_OPPONENT)
     
-    connection_msg = create_onion_message(my_address, server_address)
+    connection_msg = create_onion_message(my_address, server_address, MessageType.CONNECT)
     
     client_socket.sendto(connection_msg, first_relay)
     

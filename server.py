@@ -2,8 +2,9 @@ import socket
 import threading
 import ast
 import sys
-from utils.key import *  
 import pickle
+from utils.key import *  
+from utils.types import *  
 
 SERVER = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5053
@@ -13,7 +14,7 @@ clients = []
 def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     relay_socket.bind(relay_address)
-    print(f"{index} Relay Node {relay_address} initialized")
+    # print(f"{index} Relay Node {relay_address} initialized")
 
     upstream_address = None
     upstream_count = 0
@@ -65,8 +66,8 @@ def match_opponent():
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((SERVER, port))
     
-    print("im waiting for clients to choose their opponents...")
     setup_onion_routing(port, [6004, 6005, 6006])
+    print("im waiting for clients to choose their opponents...")
     
     clients_op, address = server.recvfrom(BUFFER_SIZE)
     clients_op = clients_op.decode('utf-8')
@@ -111,19 +112,22 @@ def start_server():
         while True:
             data, address = server.recvfrom(BUFFER_SIZE)
             data = data.decode('utf-8')
-            truth_bit, client_address = data.split(':')[-2:]
+            message_type, client_address = data.split(':')[-2:]
             
-            print(f"\n**Connection from {address} Message: {client_address}\n")
+            print('message_type', message_type)
+            print('MessageType.CONNECT', MessageType.CONNECT.value)
+            match message_type:
+                case MessageType.CONNECT.value:
+                    print(f"\n**Connection from {address} Message: {client_address}\n")
+                    client_address = ast.literal_eval(client_address)
+
+                    if(client_address not in clients):
+                        clients.append(client_address) 
+                        server.sendto('ready'.encode('utf-8'), address)
+                        serialized_clients = pickle.dumps(clients)
+                        server.sendto(serialized_clients, address)
+                case _:
+                    pass
             
-            if(truth_bit != '0'):
-                continue
-
-            client_address = ast.literal_eval(client_address)
-
-            if(client_address not in clients):
-                clients.append(client_address) 
-                server.sendto('ready'.encode('utf-8'), address)
-                serialized_clients = pickle.dumps(clients)
-                server.sendto(serialized_clients, address)
 start_server()
 sys.exit(0)
