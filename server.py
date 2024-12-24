@@ -64,10 +64,12 @@ def relay_node_to_client(client_address, relay_address, next_address, is_end_nod
             data, _ = relay_socket.recvfrom(buffer_size)
             decrypted_message = decrypt_message(RELAY_KEYS[len(RELAY_KEYS) - index - 1], data)
             relay_socket.sendto(decrypted_message, upstream_address)
+            break
 
         except Exception as e:
             print(f"Relay error: {e}")
             break
+    relay_socket.close()
 
 def setup_onion_routing(relay_ports, address, relay_function=relay_node):
     relay_addresses = [(SERVER, port) for port in relay_ports]
@@ -90,10 +92,8 @@ def match_opponent(client1, client2):
     
     setup_onion_routing([6004, 6005, 6006], address=(SERVER, int(client2[1])), relay_function=relay_node_to_client)
     server.sendto(f"request:do you wanna play with {client1[1]}".encode(), (SERVER, 6004))
-    
     client_ans, address = server.recvfrom(BUFFER_SIZE)
     client_ans = client_ans.decode('utf-8')
-    
     if client_ans == "accept" :
         server.sendto(f"ans:accepted".encode(), (SERVER, 6003))       
         try :
@@ -104,6 +104,7 @@ def match_opponent(client1, client2):
             print(f"clients deleting error: {e}")
     else : 
         server.sendto("ans:notAccepted".encode(), (SERVER, 6003))       
+        server.sendto(f"0".encode('utf-8'), (SERVER, 6003))       
 
 
 def start_server():

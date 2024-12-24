@@ -48,7 +48,7 @@ def create_onion_message(message, message_type: MessageType):
     current_message = f"{message}:{message_type.value}".encode()
     
     for key in reversed(RELAY_KEYS):
-        print(f'Message: {current_message.hex()[:20]}')
+        # print(f'Message: {current_message.hex()[:20]}')
         current_message = encrypt_message(key, current_message)
     
     return current_message
@@ -68,6 +68,7 @@ def get_ans(ans) :
         client_socket.recvfrom(BUFFER_SIZE)
         alone = False
     else : 
+        client_socket.recvfrom(BUFFER_SIZE)
         print("not accepted")
     state = None
 
@@ -87,16 +88,17 @@ def accept(first_relay_opponent) :
 
 def requestListen() :
     global client_socket, requested
-    data, addr = client_socket.recvfrom(BUFFER_SIZE)
-    data = decrypt_onion_message(data)
-    
-    data1, data2 = data.split(':')[-2:]
-    if data1 == "request": 
-        print('==========You Got a request==========')
-        print('Do you wanna play with', data2.split("with ")[-1])
-        requested = data2.split("with ")[-1]   
-    elif data1 == "ans":
-        get_ans(data2)
+    while alone:
+        data, addr = client_socket.recvfrom(BUFFER_SIZE)
+        data = decrypt_onion_message(data)
+        
+        data1, data2 = data.split(':')[-2:]
+        if data1 == "request": 
+            print('==========You Got a request==========')
+            print('Do you wanna play with', data2.split("with ")[-1])
+            requested = data2.split("with ")[-1]   
+        elif data1 == "ans":
+            get_ans(data2)
     
 def create_onion_message_opponent(me, opponent):
     current_message = f"{me}:{opponent}".encode()
@@ -170,8 +172,9 @@ def connect_through_onion():
                 accept(first_relay_opponent)
             elif state == "decline" :
                 decline(first_relay_opponent)
+       
+       
         print(f"ME {my_address} -- OPPONENT{opponent}")
-        
         return first_relay
     else:
         raise ConnectionError("Failed to connect through onion network")
