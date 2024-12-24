@@ -4,16 +4,10 @@ import sys
 from time import sleep
 import pickle
 from utils.key import *  
-from utils.types import *  
-
-SERVER_PORT = 5053
-ONION_PORT = 6001
-ONION_PORT_OPPONENT = 6004
-BUFFER_SIZE = 1024
-server_host = socket.gethostbyname(socket.gethostname())
+from utils.constants import * 
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client_socket.bind((server_host, 0)) 
+client_socket.bind((SERVER, 0)) 
 my_address = client_socket.getsockname()
 
 state = None
@@ -64,7 +58,7 @@ def send_request(first_relay_opponent) :
 def get_ans(ans) :
     global state, opponent, opponent_port, alone
     if ans == "accepted" :
-        opponent = (server_host, int(opponent_port))
+        opponent = (SERVER, int(opponent_port))
         client_socket.recvfrom(BUFFER_SIZE)
         alone = False
     else : 
@@ -74,15 +68,15 @@ def get_ans(ans) :
 
 def decline(first_relay_opponent):
     choose_opoonent_msg = create_onion_message_ans("decline")
-    client_socket.sendto(choose_opoonent_msg, (server_host, 6006))
+    client_socket.sendto(choose_opoonent_msg, (SERVER, 6006))
     return
 
 def accept(first_relay_opponent) :
     global alone, opponent, requested
     choose_opoonent_msg = create_onion_message_ans("accept")
-    client_socket.sendto(choose_opoonent_msg, (server_host, 6006))
+    client_socket.sendto(choose_opoonent_msg, (SERVER, 6006))
     opponent_port = requested
-    opponent = (server_host, int(opponent_port))
+    opponent = (SERVER, int(opponent_port))
     alone = False
     return
 
@@ -138,9 +132,9 @@ def decrypt_onion_message(data, requires_decode=True):
 
 def connect_through_onion():
     global opponent, state
-    server_address  = (server_host, SERVER_PORT)
-    first_relay = (server_host, ONION_PORT)
-    first_relay_opponent = (server_host, ONION_PORT)
+    server_address  = (SERVER, SERVER_PORT)
+    first_relay = (SERVER, ONION_PORT)
+    first_relay_opponent = (SERVER, ONION_PORT)
     
     message = f"{my_address}"
     connection_msg = create_onion_message(message, MessageType.CONNECT)
@@ -179,7 +173,7 @@ def connect_through_onion():
     else:
         raise ConnectionError("Failed to connect through onion network")
 
-def run_client(server_host=server_host, server_port=SERVER_PORT):
+def run_client(SERVER=SERVER, server_port=SERVER_PORT):
     print(f'\nMy Address {my_address} \n')
     global opponent
     first_relay = connect_through_onion()

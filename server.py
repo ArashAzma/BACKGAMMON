@@ -4,15 +4,11 @@ import ast
 import sys
 import pickle
 from utils.key import *  
-from utils.types import *  
+from utils.constants import * 
 
-SERVER = socket.gethostbyname(socket.gethostname())
-SERVER_PORT = 5053
-TO_CLIENT_PORT = 5555
-BUFFER_SIZE = 2048
 clients = []
 
-def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
+def relay_node(server_address, relay_address, next_address, is_end_node, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     relay_socket.bind(relay_address)
 
@@ -45,7 +41,7 @@ def relay_node(server_address, relay_address, next_address, is_end_node, index, 
             print(f"Relay error: {e}")
             break
         
-def relay_node_to_client(client_address, relay_address, next_address, is_end_node, index, buffer_size=1024):
+def relay_node_to_client(client_address, relay_address, next_address, is_end_node, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     relay_socket.bind(relay_address)
 
@@ -90,28 +86,28 @@ def match_opponent(client1, client2):
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((SERVER, port))
     
-    setup_onion_routing([6004, 6005, 6006], address=(SERVER, int(client2[1])), relay_function=relay_node_to_client)
-    server.sendto(f"request:do you wanna play with {client1[1]}".encode(), (SERVER, 6004))
+    setup_onion_routing([ONION_PORT_OPPONENT, ONION_PORT_OPPONENT+1, ONION_PORT_OPPONENT+2], address=(SERVER, int(client2[1])), relay_function=relay_node_to_client)
+    server.sendto(f"request:do you wanna play with {client1[1]}".encode(), (SERVER, ONION_PORT_OPPONENT))
     client_ans, address = server.recvfrom(BUFFER_SIZE)
     client_ans = client_ans.decode('utf-8')
     if client_ans == "accept" :
-        server.sendto(f"ans:accepted".encode(), (SERVER, 6003))       
+        server.sendto(f"ans:accepted".encode(), (SERVER, ONION_PORT+2))       
         try :
             clients.remove(client1)
             clients.remove(client2)
-            server.sendto(f"0".encode('utf-8'), (SERVER, 6003))       
+            server.sendto(f"0".encode('utf-8'), (SERVER, ONION_PORT+2))       
         except Exception as e:
             print(f"clients deleting error: {e}")
     else : 
-        server.sendto("ans:notAccepted".encode(), (SERVER, 6003))       
-        server.sendto(f"0".encode('utf-8'), (SERVER, 6003))       
+        server.sendto("ans:notAccepted".encode(), (SERVER, ONION_PORT+2))       
+        server.sendto(f"0".encode('utf-8'), (SERVER, ONION_PORT+2))       
 
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((SERVER, SERVER_PORT))
     print(f"Server listening on ({SERVER}, {SERVER_PORT})")
-    setup_onion_routing([6001, 6002, 6003], address=(SERVER, SERVER_PORT))
+    setup_onion_routing([ONION_PORT, ONION_PORT+1, ONION_PORT+2], address=(SERVER, SERVER_PORT))
     
     while(True):
         while True:
