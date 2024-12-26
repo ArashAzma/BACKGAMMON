@@ -6,7 +6,7 @@ exitTerms = ("quit", "exit", "bye","q")
 def main():
 	b = Board()
 	
-	SIDE = True #True if X, false if O
+	SIDE = False #True if X, false if O
 	print("What do you want to play? Type 'pc' for Player vs. Computer or 'pp' for Player vs. Player")
 
 	line = input()

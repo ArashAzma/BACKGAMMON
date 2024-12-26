@@ -152,7 +152,6 @@ def connect_through_onion():
         raise ConnectionError("Failed to connect through onion network")
 
 # BOARD
-
 def draw_board(screen):
     pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
     
@@ -190,10 +189,9 @@ def draw_pieces(screen):
             abs_count = abs(count)
             
             for i in range(abs_count):
-                if space > 11:  # Top half
+                if space > 11:  
                     y = (i * (piece_radius * 2)) + piece_radius
-                else:  # Bottom half
-                        
+                else:
                     y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
                 
                 pygame.draw.circle(screen, color, (x, y), piece_radius)
@@ -253,29 +251,22 @@ def get_clicked_space(pos):
 
 def handle_click(pos):
     global selected_piece, moves_left, current_roll
-    
     if not is_my_turn or not current_roll:
         return
         
     space = get_clicked_space(pos)
-    # print('space', space)   
     if space is not None:
         if selected_piece is None:
             selected_piece = space
         else:
-            # Calculate move
             steps = abs(space - selected_piece)
-            # print('selected_piece', space)   
-            # print('steps', steps)   
             if steps in current_roll:
-                success, message = board.makeMove(selected_piece, is_my_turn, steps)
-                print('success', success)   
-                print('message', message)   
+                success, message = board.makeMove(selected_piece, not is_my_turn, steps)
                 if success:
                     moves_left -= steps
                     current_roll.remove(steps)
-                    # if moves_left == 0:
-                    #     end_turn()
+                    if moves_left == 0:
+                        end_turn()
                 messages.append(f"System: {message}")
             selected_piece = None
 
@@ -350,9 +341,9 @@ def game_loop(screen, font):
 
     clock = pygame.time.Clock()
     
-    # if my_address[1] > opponent[1]:
-    is_my_turn = True
-    roll_dice()
+    if my_address[1] > opponent[1]:
+        is_my_turn = True
+        roll_dice()
 
     while True:
         screen.fill(WHITE)
@@ -378,27 +369,31 @@ def game_loop(screen, font):
 
         draw_board(screen)
         draw_pieces(screen)
-        # draw_dice(screen, font)
-        # draw_chat(screen, font)
+        draw_dice(screen, font)
+        draw_chat(screen, font)
 
         pygame.display.flip()
         clock.tick(30) 
 
 def run_client():
     global opponent
-    opponent = (SERVER, 123123)
+    # opponent = (SERVER, 123123)
     
     print(f'\nMy Address {my_address} \n')
-    # if connect_through_onion():
-    pygame.init()
-    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
-    font = pygame.font.Font(None, FONT_SIZE)
-    pygame.display.set_caption("Backgammon")
-    
-    listener = threading.Thread(target=listen_loop)
-    listener.daemon = True
-    listener.start()
-    
-    game_loop(screen, font)
+    if connect_through_onion():
+        pygame.init()
+        screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        font = pygame.font.Font(None, FONT_SIZE)
+        title = "BLACK"
+        if my_address[1] > opponent[1]:
+            title = "WHITE"
+            
+        pygame.display.set_caption(f"Backgammon {title}")
+        
+        listener = threading.Thread(target=listen_loop)
+        listener.daemon = True
+        listener.start()
+        
+        game_loop(screen, font)
     
 run_client()
