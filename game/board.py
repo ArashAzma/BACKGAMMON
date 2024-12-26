@@ -29,7 +29,7 @@ class Board:
 		@return
 		tuple of true if move was made, false if not possible, and string with response
 		"""
-		if side:
+		if side=='BLACK':
 			if (self.xJail > 0 and (steps != 0 or space < 18)):
 				return (False, "Make sure you free your piece from jail first!")
 			elif (self.xJail > 0 and steps == 0 and space > 17):

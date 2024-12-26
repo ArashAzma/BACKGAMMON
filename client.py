@@ -261,7 +261,7 @@ def handle_click(pos):
         else:
             steps = abs(space - selected_piece)
             if steps in current_roll:
-                success, message = board.makeMove(selected_piece, not is_my_turn, steps)
+                success, message = board.makeMove(selected_piece, my_color, steps)
                 if success:
                     moves_left -= steps
                     current_roll.remove(steps)
@@ -307,6 +307,7 @@ def handle_network_message(data):
         elif isinstance(message, str):
             if message.startswith('CHAT:'):
                 messages.append(f"Opponent: {message[5:]}")
+                
     except Exception as e:
         messages.append(f"Error: {str(e)}")
 
@@ -315,10 +316,7 @@ def listen_loop(buffer_size=BUFFER_SIZE):
     while True:
         try:
             data, _ = client_socket.recvfrom(buffer_size)
-            data = data.decode()
-            if data.startswith("CHAT:"):
-                received_message = data[5:]
-                messages.append(f"Opponent: {received_message}")
+            handle_network_message(data)
         except Exception as e:
             messages.append(f"Listen error: {e}")
             break
@@ -329,7 +327,8 @@ def send_message(opponent):
             message = input("> ")
             if message.lower() == 'q':
                 break
-            client_socket.sendto(f"CHAT:{message}".encode(), opponent)
+            client_socket.sendto(pickle.dumps(f"CHAT:{message}"), opponent)
+            # client_socket.sendto(f"CHAT:{message}".encode(), opponent)
     except KeyboardInterrupt:
         pass
     finally:
@@ -337,13 +336,18 @@ def send_message(opponent):
         sys.exit(0)
         
 def game_loop(screen, font):
-    global input_text, messages, is_my_turn
+    global input_text, messages, is_my_turn, my_color
 
     clock = pygame.time.Clock()
     
     if my_address[1] > opponent[1]:
         is_my_turn = True
+        my_color = 'WHITE'
         roll_dice()
+    else:
+        is_my_turn = False
+        my_color = 'BLACK'
+        
 
     while True:
         screen.fill(WHITE)
@@ -359,7 +363,8 @@ def game_loop(screen, font):
                     if input_text.lower() == "q":
                         pygame.quit()
                         sys.exit()
-                    client_socket.sendto(f"CHAT:{input_text}".encode(), opponent)
+                    # client_socket.sendto(f"CHAT:{input_text}".encode(), opponent)
+                    client_socket.sendto(pickle.dumps(f"CHAT:{input_text}"), opponent)
                     messages.append(f"You: {input_text}")
                     input_text = ""
                 elif event.key == pygame.K_BACKSPACE:
@@ -377,7 +382,7 @@ def game_loop(screen, font):
 
 def run_client():
     global opponent
-    # opponent = (SERVER, 123123)
+    # opponent = (SERVER, 123)
     
     print(f'\nMy Address {my_address} \n')
     if connect_through_onion():
