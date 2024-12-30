@@ -30,7 +30,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     CONNECTION_MODE = True
     
     private_key = None
-
+    times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
     client_conn, client_addr = relay_socket.accept()
@@ -51,18 +51,65 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     print(f'{index} sent message to {client_addr}', message)
                     print(f'{index} success') 
                 else:
+                    times+=1
+                    print(f'++++++++ {index} {times}')
                     num_chunks = int(client_conn.recv(buffer_size).decode())
-                    print('num_chunks', num_chunks)
+                    print(f'{index} num_chunks', num_chunks)
                     encrypted_chunks = []
                     for _ in range(num_chunks):
                         chunk_size = int.from_bytes(client_conn.recv(4), byteorder='big')
                         chunk = client_conn.recv(chunk_size)
                         encrypted_chunks.append(chunk)
                     
-                    private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
-                    next_node_socket.sendall(private_key_bytes)
+                    if index==0 and times==2:
+                        intermediate_chunks = []
+                        for chunk in encrypted_chunks:
+                            try:
+                                decrypted_bytes = decrypt2(chunk, private_key)  
+                                decrypted_bytes = remove_padding(decrypted_bytes)
+                                intermediate_chunks.append(decrypted_bytes)
+                            except Exception as e:
+                                print(f"Decryption error: {e}")
+                        
+                        print(f' {index} decrypted_bytes')
+                        print(f' {index} str(len(intermediate_chunks)) {str(len(intermediate_chunks))}')
+                        next_node_socket.sendall(str(len(intermediate_chunks)).encode())
+                        for chunk in intermediate_chunks:
+                            chunk_size = len(chunk).to_bytes(4, byteorder='big')
+                            next_node_socket.sendall(chunk_size + chunk)
+
+                    elif index==1 and times==1:
+                        # print(f' {index} encrypted_chunks', encrypted_chunks)
+                        # combined = b''.join(encrypted_chunks)
+                        # print('combined', combined)
+                        # final_decrypted = decrypt_final_layer(combined, private_key)
+
+                        # print('final_decrypted', final_decrypted)
+                        # intermediate_chunks = []
+                        my_key = b''
+                        for chunk in encrypted_chunks:
+                            try:
+                                # print(chunk)
+                                # print()
+                                chunk = remove_padding(chunk)
+                                # print(chunk)
+                                # print(len(chunk))
+                                # print()
+                                my_key += chunk
+                                # decrypted_bytes = decrypt2(chunk, private_key)  
+                                # intermediate_chunks.append(decrypted_bytes)
+                            except Exception as e:
+                                print(f"Decryption error: {e}")
+                        print(private_key.key_size)
+                        print("LEN", len(my_key))
+                        print(f' {index} decrypted_bytes', private_key_bytes)
+                    else:
+                        private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
+                        next_node_socket.sendall(private_key_bytes)
+                    print(f' {index} Sent to next node')
                     data = next_node_socket.recv(BUFFER_SIZE)
                     client_conn.sendall(data)
+                    
                     
                     # break
 
