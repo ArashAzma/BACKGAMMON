@@ -48,16 +48,26 @@ def connect_to_server():
     # print(private_keys[2])
         
     #! Send private key 0
-    message = str(private_keys[0]).encode()
-    client_socket.sendall(message)
+    client_socket.sendall(serialize_private_key(private_keys[0]))
     print('sent key 0')
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('message:', message)
     
     ##! Send private key 1
-    print(private_keys[1])
-    print(private_keys[1])
-    enc_key = encrypt(private_keys[1], public_keys[0])
+    private_key_bytes = serialize_private_key(private_keys[1])
+    encrypted_chunks = split_and_encrypt_key(private_key_bytes, 190, public_keys[0])
+    client_socket.sendall(str(len(encrypted_chunks)).encode())
+    for chunk in encrypted_chunks:
+        chunk_size = len(chunk).to_bytes(4, byteorder='big')
+        client_socket.sendall(chunk_size + chunk)
+    print('sent key 1')
+        
+    # print(len(encrypted_chunks))
+    # private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_keys[0])
+    # print(private_key_bytes)
+    
+    # if private_key_bytes == private_key_bytes:
+    #     print("Encryption and decryption successful! The private key matches.")
     
 connect_to_server()
