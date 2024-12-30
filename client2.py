@@ -71,15 +71,19 @@ def connect_to_server():
     print('message:', message)
         
     #! Send private key 2
-    # private_key_bytes = serialize_private_key(private_keys[2])
-    # ra = reassemble_key(encrypted_chunks)
-    # encrypted_chunks = split_and_encrypt_key(ra, 214, public_keys[1])
-    # client_socket.sendall(str(len(encrypted_chunks)).encode())
-    # for chunk in encrypted_chunks:
-    #     chunk_size = len(chunk).to_bytes(4, byteorder='big')
-    #     client_socket.sendall(chunk_size + chunk)
-    # print('sent key 2')
+    private_key_bytes = serialize_private_key(private_keys[2])
+    ra = reassemble_key(encrypted_chunks)
+    encrypted_chunks = split_and_encrypt_key(ra, 214, public_keys[1])
+    client_socket.sendall(str(len(encrypted_chunks)).encode())
+    for chunk in encrypted_chunks:
+        chunk_size = len(chunk).to_bytes(4, byteorder='big')
+        print(chunk)
+        client_socket.sendall(chunk_size + chunk)
+    print('sent key 2')
     
+    data = client_socket.recv(BUFFER_SIZE)
+    # protocol, message = parse_message(data)
+    # print('message:', message)
         
     
 connect_to_server()
