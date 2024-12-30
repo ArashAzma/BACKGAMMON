@@ -1,52 +1,27 @@
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
+import random
 
-def generate_keys():
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
-    
-    public_key = private_key.public_key()
-    
-    return private_key, public_key
+def mod_exp(base, exp, mod):
+    """Efficient modular exponentiation."""
+    result = 1
+    while exp > 0:
+        if exp % 2 == 1:
+            result = (result * base) % mod
+        base = (base * base) % mod
+        exp //= 2
+    return result
 
-def save_key(key, filename, is_private=False):
-    if is_private:
-        pem = key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        )
-    else:
-        pem = key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-    
-    with open(filename, 'wb') as f:
-        f.write(pem)
-        
-def load_private_key(filename):
-    with open(filename, 'rb') as f:
-        private_key = serialization.load_pem_private_key(
-            f.read(),
-            password=None,
-        )
-    return private_key
+def generate_keys(prime):
+    """Generate public and private keys."""
+    g = 2  
+    d = random.randint(2, prime - 2)  # Private key
+    e = mod_exp(g, d, prime)   # Public key
+    return (e, g, prime), d
 
-def load_public_key(filename):
-    with open(filename, 'rb') as f:
-        public_key = serialization.load_pem_public_key(f.read())
-    return public_key        
+def encrypt(message, public_key):
+    """Encrypt a message."""
+    e, g, p = public_key
+    return mod_exp(message, e, p)
 
-node1_private, node1_public = generate_keys()
-node2_private, node2_public = generate_keys()
-node3_private, node3_public = generate_keys()
-
-save_key(node1_private, 'keys/node1_private_key.pem', is_private=True)
-save_key(node1_public, 'keys/node1_public_key.pem')
-save_key(node2_private, 'keys/node2_private_key.pem', is_private=True)
-save_key(node2_public, 'keys/node2_public_key.pem')
-save_key(node3_private, 'keys/node3_private_key.pem', is_private=True)
-save_key(node3_public, 'keys/node3_public_key.pem')
+def decrypt(ciphertext, private_key, prime):
+    """Decrypt a ciphertext."""
+    return mod_exp(ciphertext, private_key, prime)
