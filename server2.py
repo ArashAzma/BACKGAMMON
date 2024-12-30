@@ -44,15 +44,15 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     data = client_conn.recv(buffer_size)
                     if (len(data) == 0):
                         continue
-                    # print(f'{index} recv {data}')
                     private_key = load_private_key(data.decode())
-                    print(f'{index} success', private_key)
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
+                    
+                    print(f'{index} sent message to {client_addr}', message)
+                    # print(f'{index} success') 
                 else:
-                    # print(f'{index} is DONE')
                     num_chunks = int(client_conn.recv(buffer_size).decode())
-                    print('num_chunks', num_chunks)
+                    # print('num_chunks', num_chunks)
                     encrypted_chunks = []
                     for _ in range(num_chunks):
                         chunk_size = int.from_bytes(client_conn.recv(4), byteorder='big')
@@ -61,7 +61,9 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     
                     private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
                     next_node_socket.sendall(private_key_bytes)
-                    # print(f'Decrypted private key at node {index}:', private_key_bytes)
+                    data = next_node_socket.recv(BUFFER_SIZE)
+                    client_conn.sendall(data)
+                    
                     break
 
         except Exception as e:

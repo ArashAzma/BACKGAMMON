@@ -16,8 +16,8 @@ def encrypt(message, public_key):
     encrypted_message = public_key.encrypt(
         message,
         padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
+            mgf=padding.MGF1(algorithm=hashes.SHA1()),
+            algorithm=hashes.SHA1(),
             label=None
         )
     )
@@ -27,8 +27,8 @@ def decrypt(encrypted_message, private_key):
     plaintext = private_key.decrypt(
         encrypted_message,
         padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
+            mgf=padding.MGF1(algorithm=hashes.SHA1()),
+            algorithm=hashes.SHA1(),
             label=None
         )
     )
@@ -47,10 +47,26 @@ def split_and_encrypt_key(private_key_bytes, chunk_size, encryption_key):
     
     for chunk in chunks:
         if len(chunk) < chunk_size:
-            chunk = chunk + b'\0' * (chunk_size - len(chunk))
-        encrypted_chunks.append(encrypt(chunk, encryption_key))
+            chunk = chunk + b'\0' * (chunk_size - len(chunk))  # Pad if necessary
+        try:
+            encrypted_chunks.append(encrypt(chunk, encryption_key))
+        except ValueError as e:
+            print(f"Encryption failed for chunk of size {len(chunk)}. Error: {e}")
+            continue  
     
     return encrypted_chunks
+
+def reassemble_key(encrypted_chunks):
+    decrypted_bytes = bytearray()
+    
+    for encrypted_chunk in encrypted_chunks:
+        decrypted_bytes.extend(encrypted_chunk)
+    
+    try:
+        null_index = decrypted_bytes.index(b'\0')
+        return bytes(decrypted_bytes[:null_index])
+    except ValueError:
+        return bytes(decrypted_bytes)
 
 def decrypt_and_reassemble_key(encrypted_chunks, decryption_key):
     decrypted_bytes = bytearray()

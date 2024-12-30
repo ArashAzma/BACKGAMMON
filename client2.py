@@ -6,6 +6,8 @@ from utils.constants import *
 from utils.helper import * 
 import rsa
 from base64 import b64encode, b64decode
+import zlib
+
 
 
 def find_my_port():
@@ -50,24 +52,34 @@ def connect_to_server():
     #! Send private key 0
     client_socket.sendall(serialize_private_key(private_keys[0]))
     print('sent key 0')
+    
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('message:', message)
     
-    ##! Send private key 1
+    #! Send private key 1
     private_key_bytes = serialize_private_key(private_keys[1])
-    encrypted_chunks = split_and_encrypt_key(private_key_bytes, 190, public_keys[0])
+    encrypted_chunks = split_and_encrypt_key(private_key_bytes, 214, public_keys[0])
     client_socket.sendall(str(len(encrypted_chunks)).encode())
     for chunk in encrypted_chunks:
         chunk_size = len(chunk).to_bytes(4, byteorder='big')
         client_socket.sendall(chunk_size + chunk)
     print('sent key 1')
-        
-    # print(len(encrypted_chunks))
-    # private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_keys[0])
-    # print(private_key_bytes)
     
-    # if private_key_bytes == private_key_bytes:
-    #     print("Encryption and decryption successful! The private key matches.")
+    data = client_socket.recv(BUFFER_SIZE)
+    protocol, message = parse_message(data)
+    print('message:', message)
+        
+    #! Send private key 2
+    # private_key_bytes = serialize_private_key(private_keys[2])
+    # ra = reassemble_key(encrypted_chunks)
+    # encrypted_chunks = split_and_encrypt_key(ra, 214, public_keys[1])
+    # client_socket.sendall(str(len(encrypted_chunks)).encode())
+    # for chunk in encrypted_chunks:
+    #     chunk_size = len(chunk).to_bytes(4, byteorder='big')
+    #     client_socket.sendall(chunk_size + chunk)
+    # print('sent key 2')
+    
+        
     
 connect_to_server()
