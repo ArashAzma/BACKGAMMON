@@ -25,6 +25,43 @@ def encrypt(message, public_key):
     )
     return encrypted_message
 
+def encrypt_message(message, public_key):
+    max_message_size = public_key.key_size // 8 - 2 * hashes.SHA256().digest_size - 2
+    # message = message.encode('utf-8')
+
+    encrypted_message = b""
+    for i in range(0, len(message), max_message_size):
+        chunk = message[i:i + max_message_size]
+        encrypted_chunk = public_key.encrypt(
+            chunk,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        encrypted_message += encrypted_chunk
+    
+    return encrypted_message
+
+def decrypt_message(encrypted_message, private_key):
+    max_message_size = private_key.key_size // 8
+    decrypted_message = b""
+    
+    for i in range(0, len(encrypted_message), max_message_size):
+        encrypted_chunk = encrypted_message[i:i + max_message_size]
+        decrypted_chunk = private_key.decrypt(
+            encrypted_chunk,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        decrypted_message += decrypted_chunk
+
+    return decrypted_message
+
 def decrypt(encrypted_message, private_key):
     plaintext = private_key.decrypt(
         encrypted_message,
