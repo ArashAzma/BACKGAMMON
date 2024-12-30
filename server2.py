@@ -44,21 +44,29 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     data = client_conn.recv(buffer_size)
                     if (len(data) == 0):
                         continue
-                    print(f'{index} recv {data} {len(data)}')
-                    _, private_key = parse_message(data)
+                    print(f'{index} recv {data}')
+                    private_key = data.decode()
                     print(f'{index} success', private_key)
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
                 else:
-                    print(f'{index} is DONE')
+                    # print(f'{index} is DONE')
                     data = client_conn.recv(buffer_size)
-                    print('got encrypted_data')
-                    print(private_key)
-                    decrypted_data = decrypt(data, private_key)
-                    print('got decrypted_data')
-                    print("Received message:", decrypted_data.decode())
-                    print('Data received successfully')
-                
+                    print('data', data)
+                        
+                    print(f'{index} enc_key', message)
+                    print(f'{index} private_key', private_key)
+                    decrypted_data = decrypt(message, int(private_key), 23)
+                    if is_serialized_message(message):
+                        print('was is_serialized_message')    
+                        decrypted_data = deserialize_encrypted_message(message)
+                    
+                    print(f'** {index} got decrypted_data', decrypted_data)
+                    message = create_message(MessageType.CONNECT.value, decrypted_data)
+                    next_node_socket.sendall(message)
+                    
+                    response = next_node_socket.recv(buffer_size)
+                    client_conn.sendall(response)
                 
                 # client_conn, client_addr = relay_socket.accept()
                 # print(f"Relay node {index} connected to {client_addr}")
@@ -85,6 +93,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
 
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
+            break
 
 def setup_onion_routing(relay_ports, address, relay_function=relay_node):
     relay_addresses = [(SERVER, port) for port in relay_ports]

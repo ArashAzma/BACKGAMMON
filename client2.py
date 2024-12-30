@@ -25,8 +25,8 @@ def generate_client_keys():
     private_keys = []
     public_keys = []
     
-    for prime in [23, 29, 31]:
-        node_public, node_private = generate_keys(prime)
+    for i in range(3):
+        node_private, node_public = generate_keys()
         private_keys.append(node_private)
         public_keys.append(node_public)
         
@@ -43,20 +43,21 @@ def connect_to_server():
     
     private_keys, public_keys = generate_client_keys()
         
-    # for i in range(3):
-    message = create_message(MessageType.CONNECT.value, private_keys[0])
+    # print(private_keys[0])
+    # print(private_keys[1])
+    # print(private_keys[2])
+        
+    #! Send private key 0
+    message = str(private_keys[0]).encode()
     client_socket.sendall(message)
     print('sent key 0')
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('message:', message)
     
+    ##! Send private key 1
+    print(private_keys[1])
+    print(private_keys[1])
     enc_key = encrypt(private_keys[1], public_keys[0])
-    message = create_message(MessageType.CONNECT.value, enc_key)
-    client_socket.sendall(message)
-    print('sent key 1')
-    data = client_socket.recv(BUFFER_SIZE)
-    protocol, message = parse_message(data)
-    print('message:', message)
     
 connect_to_server()
