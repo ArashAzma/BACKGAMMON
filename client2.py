@@ -50,7 +50,8 @@ def connect_to_server():
     # print(private_keys[2])
         
     #! Send private key 0
-    client_socket.sendall(serialize_private_key(private_keys[0]))
+    key = serialize_private_key(private_keys[0])
+    client_socket.sendall(zlib.compress(key))
     print('sent key 0')
     
     data = client_socket.recv(BUFFER_SIZE)
@@ -58,12 +59,14 @@ def connect_to_server():
     print('message:', message)
     
     #! Send private key 1
-    private_key_bytes = serialize_private_key(private_keys[1])
-    encrypted_chunks = split_and_encrypt_key(private_key_bytes, 214, public_keys[0])
-    client_socket.sendall(str(len(encrypted_chunks)).encode())
-    for chunk in encrypted_chunks:
-        chunk_size = len(chunk).to_bytes(4, byteorder='big')
-        client_socket.sendall(chunk_size + chunk)
+    key = serialize_private_key(private_keys[1])
+    compressed_key = zlib.compress(key)
+    aes_key, iv, encrypted_key = encrypt_with_aes(compressed_key)
+    # Step 4: Encrypt the AES key using RSA public key (this is the hybrid encryption step)
+    encrypted_aes_key = encrypt(aes_key, public_keys[0])   
+    client_socket.sendall(zlib.compress(encrypted_aes_key))
+    client_socket.sendall(encrypted_key)
+    client_socket.sendall(iv)
     print('sent key 1')
     
     data = client_socket.recv(BUFFER_SIZE)

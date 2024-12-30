@@ -1,6 +1,8 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as sym_padding
 import os
 
 
@@ -32,7 +34,7 @@ def decrypt(encrypted_message, private_key):
             label=None
         )
     )
-    return plaintext.decode()
+    return plaintext
 
 def serialize_private_key(private_key):
     return private_key.private_bytes(
@@ -40,6 +42,36 @@ def serialize_private_key(private_key):
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption()
     )
+
+def encrypt_with_aes(data):
+    # Generate AES key (256-bit)
+    aes_key = os.urandom(32)
+    # Create AES cipher object
+    iv = os.urandom(16)  # AES block size for CBC is 16 bytes
+    cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv))
+    encryptor = cipher.encryptor()
+
+    # Pad the data to make it a multiple of 16 bytes (AES block size)
+    padder = sym_padding.PKCS7(128).padder()
+    padded_data = padder.update(data) + padder.finalize()
+
+    # Encrypt the data
+    encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+
+    return aes_key, iv, encrypted_data
+
+def decrypt_with_aes(encrypted_data, aes_key, iv):
+    cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv))
+    decryptor = cipher.decryptor()
+
+    # Decrypt the data
+    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+    # Unpad the decrypted data
+    unpadder = sym_padding.PKCS7(128).unpadder()
+    data = unpadder.update(decrypted_data) + unpadder.finalize()
+
+    return data
 
 def split_and_encrypt_key(private_key_bytes, chunk_size, encryption_key):
     chunks = [private_key_bytes[i:i+chunk_size] for i in range(0, len(private_key_bytes), chunk_size)]
@@ -85,9 +117,9 @@ def decrypt_and_reassemble_key(encrypted_chunks, decryption_key):
         return bytes(decrypted_bytes)
 
 def load_private_key(private_key_str):
-    private_key_bytes = private_key_str.encode()  
+    # private_key_bytes = private_key_str.encode()  
     private_key = serialization.load_pem_private_key(
-        private_key_bytes,
+        private_key_str,
         password=None,
         backend=default_backend(),
     )

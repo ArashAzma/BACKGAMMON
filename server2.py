@@ -7,7 +7,7 @@ from utils.constants import *
 from utils.helper import *
 import rsa
 from base64 import b64encode, b64decode
-
+import zlib
 clients = []
 
 '''
@@ -44,23 +44,36 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     data = client_conn.recv(buffer_size)
                     if (len(data) == 0):
                         continue
-                    private_key = load_private_key(data.decode())
+
+                    decompressed = zlib.decompress(data)
+                    private_key = load_private_key(decompressed)
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
                     
                     print(f'{index} sent message to {client_addr}', message)
                     # print(f'{index} success') 
                 else:
-                    num_chunks = int(client_conn.recv(buffer_size).decode())
-                    # print('num_chunks', num_chunks)
-                    encrypted_chunks = []
-                    for _ in range(num_chunks):
-                        chunk_size = int.from_bytes(client_conn.recv(4), byteorder='big')
-                        chunk = client_conn.recv(chunk_size)
-                        encrypted_chunks.append(chunk)
+                    compressed_encrypted_aes_key = client_conn.recv(buffer_size)
+                    encrypted_key = client_conn.recv(1024)  # The AES-encrypted private key
+                    iv = client_conn.recv(16)               # Initialization vector for AES decryption
+
+                    # Step 1: Decompress and decrypt the AES key
+                    encrypted_aes_key = zlib.decompress(compressed_encrypted_aes_key)
+                    aes_key = decrypt(encrypted_aes_key, private_key)  # Decrypt the AES key using RSA private key
+                    print("Decrypted the AES key!")
+
+                    # Step 2: Decrypt the private key using AES
+                    decompressed_private_key = decrypt_with_aes(encrypted_key, aes_key, iv)
+                    print("i decrypted it!")
+                    # # print('num_chunks', num_chunks)
+                    # encrypted_chunks = []
+                    # for _ in range(num_chunks):
+                    #     chunk_size = int.from_bytes(client_conn.recv(4), byteorder='big')
+                    #     chunk = client_conn.recv(chunk_size)
+                    #     encrypted_chunks.append(chunk)
                     
-                    private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
-                    next_node_socket.sendall(private_key_bytes)
+                    # private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
+                    next_node_socket.sendall(decrypted_key)
                     data = next_node_socket.recv(BUFFER_SIZE)
                     client_conn.sendall(data)
                     
