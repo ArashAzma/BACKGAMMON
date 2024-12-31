@@ -28,3 +28,4 @@ class MessageType(Enum):
     REQUEST = "request"
     ACCEPT = "accept"
     DECLINE = "decline"
+    ONLINES = "onlines"

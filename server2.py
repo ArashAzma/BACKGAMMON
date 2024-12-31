@@ -144,15 +144,21 @@ def start_server():
 
         print(f"Server received connection from {addr}")
         address, message = parse_message(data)
+        print(f"Received: {message}")
 
         if message == MessageType.CONNECT.value:
-            print(f"Received: {message}")
             if(address not in clients):
                 serialized_clients = pickle.dumps(clients)
                 message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
                 conn.sendall(message)
                 clients.append(address)
                 print(clients)
+        elif message == MessageType.ONLINES.value :
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect(address)
+            client_socket.send(clients)
+            print("i got onlines!")
+
         conn.close()
 
 
