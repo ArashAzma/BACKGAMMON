@@ -129,7 +129,6 @@ def send_request() :
     choose_opoonent_msg = create_message(message, MessageType.REQUEST)
     client_socket.send(choose_opoonent_msg)
 
-
 def connect_to_server():
     global private_keys, public_keys, alone, my_address, client_socket
     CONNECTION_MODE = True
@@ -181,6 +180,10 @@ def connect_to_server():
     message = three_layerEncrypt(message)
     client_socket.sendall(message)    
     
+    message = create_message(my_address, MessageType.ONLINES.value)
+    message = three_layerEncrypt(message)
+    client_socket.sendall(message)    
+        
     # requesting
     while (alone) :
         word = input()

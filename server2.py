@@ -2,6 +2,7 @@ import socket
 import threading
 import pickle
 import os
+from time import sleep
 from utils.key2 import *
 from utils.constants import *
 from utils.helper import *
@@ -95,13 +96,13 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     CONNECTION_MODE = False
             else:
                 print(f'{index} Listening')
-                data = client_conn.recv(buffer_size)
+                data = client_conn.recv(BUFFER_SIZE)
                 data = decrypt_message(data, private_key)
+                sleep(0.001)    
                 next_node_socket.sendall(data)
                 if index == 2:
                     print('FINAL MESSAGE', data.decode())
-            
-
+        
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
             break
@@ -132,9 +133,11 @@ def start_server():
             relay_ports=[ONION_PORT + p, ONION_PORT + p + 1, ONION_PORT + p + 2],
             address=(SERVER, SERVER_PORT)
         )
-
+    count = 0
     while True:
+        count+=1
         conn, addr = server.accept()
+        print(f"im waiting{count}")
         data = conn.recv(BUFFER_SIZE)
         if not data:
             continue
