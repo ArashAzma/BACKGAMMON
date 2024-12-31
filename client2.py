@@ -116,9 +116,8 @@ def accept() :
 
 
 def send_request() :
-    global opponent_port, client_socket, state
-    state = "waiting"
-    message = create_message(my_address, MessageType.ONLINES)
+    global opponent_port, client_socket
+    message = create_message(my_address, MessageType.ONLINES.value)
     message = three_layerEncrypt(message)
     client_socket.send(message)
     # clients = client_socket.recv(5*len(my_address))
@@ -176,10 +175,13 @@ def connect_to_server():
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('KEY 2 was a SUCCESS:', message)
-    message = create_message(my_address, "connect")
+
+    # connecting client
+    message = create_message(my_address, MessageType.CONNECT.value)
     message = three_layerEncrypt(message)
     client_socket.sendall(message)    
     
+    # requesting
     while (alone) :
         word = input()
         print(word)

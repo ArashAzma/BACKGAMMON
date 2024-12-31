@@ -100,10 +100,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                 next_node_socket.sendall(data)
                 if index == 2:
                     print('FINAL MESSAGE', data.decode())
-                else:
-                    next_node_socket.sendall(data)
-                break
-
+            
 
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
