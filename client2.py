@@ -91,11 +91,10 @@ def connect_to_server():
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('KEY 2 was a SUCCESS:', message)
-    
-    message = "SALAM".encode()
+    message = create_message(my_address, "connect")
     for key in reversed(public_keys):
         message = encrypt_message(message, key)
     client_socket.sendall(message)
-    print('Sent SALAM')
+    print('Sent connect')
     
 connect_to_server()

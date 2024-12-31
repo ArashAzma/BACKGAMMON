@@ -42,14 +42,10 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     data = client_conn.recv(buffer_size)
                     if (len(data) == 0):
                         continue
-                    # print(index)
-                    # print(data.decode())
                     private_key = load_private_key(data.decode())
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
-                    
-                    # print(f'{index} sent message to {client_addr}', message)
-                    # print(f'{index} success') 
+
                 else:
                     times+=1
                     num_chunks = int(client_conn.recv(buffer_size).decode())
@@ -79,22 +75,18 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                         for chunk in ccc:
                             chunk_size = len(chunk).to_bytes(4, byteorder='big')
                             next_node_socket.sendall(chunk_size + chunk)
-                        # print(f' {index} Sent to next node')
 
                     elif index==1 and times==1:
                         d = decrypt_and_reassemble_key(encrypted_chunks, private_key)
                         next_node_socket.sendall(d)
-                        # print(f' {index} Sent to next node')
+
                     else:
                         private_key_bytes = decrypt_and_reassemble_key(encrypted_chunks, private_key)
-                        next_node_socket.sendall(private_key_bytes)
-                        # print(f' {index} Sent to next node')
+                        next_node_socket.sendall(private_key_bytes)                       
                         
                     data = next_node_socket.recv(BUFFER_SIZE)
-                    # print(f' {index} GOT {data}')    
                     client_conn.sendall(data)
                     
-                # print(f' ++ {index} {times}')    
                 if (index==0 and times == 2):
                     CONNECTION_MODE = False
                 if (index==1 and times == 1):
@@ -105,6 +97,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                 print(f'{index} Listening')
                 data = client_conn.recv(buffer_size)
                 data = decrypt_message(data, private_key)
+                next_node_socket.sendall(data)
                 if index == 2:
                     print('FINAL MESSAGE', data.decode())
                 else:
@@ -136,7 +129,7 @@ def start_server():
     server.listen(10)
     print(f"Server started on {SERVER}:{SERVER_PORT}")
 
-    for i in range(1):
+    for i in range(4):
         p = i * 3
         setup_onion_routing(
             relay_ports=[ONION_PORT + p, ONION_PORT + p + 1, ONION_PORT + p + 2],
@@ -150,18 +143,16 @@ def start_server():
             continue
 
         print(f"Server received connection from {addr}")
-        protocol, message = parse_message(data)
+        address, message = parse_message(data)
 
-        if protocol == MessageType.CONNECT.value:
+        if message == MessageType.CONNECT.value:
             print(f"Received: {message}")
-            client_address = message
-            if(client_address not in clients):
+            if(address not in clients):
                 serialized_clients = pickle.dumps(clients)
                 message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
                 conn.sendall(message)
-                clients.append(client_address)
-                
-
+                clients.append(address)
+                print(clients)
         conn.close()
 
 
