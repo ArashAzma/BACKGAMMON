@@ -44,12 +44,6 @@ def connect_to_server():
     print(f' MY ADDRESS {my_address} --- MY NODE PORT {port}')
     
     private_keys, public_keys = generate_client_keys()
-    # print(serialize_private_key(private_keys[2]))
-    # return 
-    
-    # # print(private_keys[0])
-    # # print(private_keys[1])
-    # # print(private_keys[2])
         
     #! Send private key 0
     client_socket.sendall(serialize_private_key(private_keys[0]))
@@ -91,10 +85,18 @@ def connect_to_server():
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
     print('KEY 2 was a SUCCESS:', message)
-    message = create_message(my_address, "connect")
+    
+    
+    message = create_message("connect", my_address)
     for key in reversed(public_keys):
         message = encrypt_message(message, key)
     client_socket.sendall(message)
     print('Sent connect')
+    
+    message = create_message("connect", "Salam")
+    for key in reversed(public_keys):
+        message = encrypt_message(message, key)
+    client_socket.sendall(message)
+    print('Sent salam')
     
 connect_to_server()

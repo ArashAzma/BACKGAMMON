@@ -10,16 +10,6 @@ from base64 import b64encode, b64decode
 
 clients = []
 
-'''
-Public  Keys: encrypt
-Private Keys: decrypt
-
-AT FIRST I SHOULD SEND A MESSAGE TO START_RELAY TO GIVE HIM ITS PRIVATE KEY AND GET AN ACK 
-
-THEN ENCRYPT USING THE PUBLIC KEY AND SEND THE KEY TO THE MIDDLE NODE
-DO THIS UNTIL ALL 3 ARE DONE
-'''
-
 def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     relay_socket.bind(relay_address)
@@ -94,16 +84,15 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                 if (index==2 and times == 0):
                     CONNECTION_MODE = False
             else:
-                print(f'{index} Listening')
                 data = client_conn.recv(buffer_size)
                 data = decrypt_message(data, private_key)
-                next_node_socket.sendall(data)
+                if data == b'':
+                    continue
                 if index == 2:
-                    print('FINAL MESSAGE', data.decode())
+                    next_node_socket.sendall(data)
+                    print('SENT FINAL MESSAGE', data.decode())
                 else:
                     next_node_socket.sendall(data)
-                break
-
 
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
@@ -126,7 +115,7 @@ def setup_onion_routing(relay_ports, address, relay_function=relay_node):
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((SERVER, SERVER_PORT))
-    server.listen(10)
+    server.listen(100)
     print(f"Server started on {SERVER}:{SERVER_PORT}")
 
     for i in range(4):
@@ -138,22 +127,26 @@ def start_server():
 
     while True:
         conn, addr = server.accept()
-        data = conn.recv(BUFFER_SIZE)
-        if not data:
-            continue
+        try:
+            while True:
+                data = conn.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                
+                print("data", data)
+                protocol, message = parse_message(data)
 
-        print(f"Server received connection from {addr}")
-        address, message = parse_message(data)
-
-        if message == MessageType.CONNECT.value:
-            print(f"Received: {message}")
-            if(address not in clients):
-                serialized_clients = pickle.dumps(clients)
-                message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-                conn.sendall(message)
-                clients.append(address)
-                print(clients)
-        conn.close()
+                if protocol == MessageType.CONNECT.value:
+                    address = message
+                    if(address not in clients):
+                        serialized_clients = pickle.dumps(clients)
+                        message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
+                        # conn.sendall(message)
+                        clients.append(address)
+        except Exception as e:
+            print(f"Error handling client: {e}")
+        finally:
+            conn.close()
 
 
 if os.path.isfile(CLIENTS_FILE):
