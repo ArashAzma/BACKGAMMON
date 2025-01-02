@@ -95,17 +95,30 @@ def connect_to_server():
         protocol, message = parse_message(data)
         print(f'PUBLIC KEY {i} was a SUCCESS:', message)
     
-    
+    ########################################################
+    ########################################################
     
     
     message = create_message("connect", my_address)
     for key in reversed(public_keys):
-        # message = create_message(MessageType.TOSERVER.value, message)
         message = encrypt_message(message, key)
         # message = create_message(MessageType.TOSERVER.value, message)
+        # message = create_message(MessageType.TOSERVER.value, message)
 
-    client_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(message))
+    client_socket.sendall(message)
     print('Sent connect')
+    
+    data = client_socket.recv(BUFFER_SIZE)
+    protocol, data = parse_client_message(data)
+    if protocol == MessageType.ACCEPT.value:
+        clients = pickle.loads(data)
+        print('Clients successfully connected to the Server')
+        print('clients', clients)
+        return clients
+    else:
+        print('There was an Error with Clients')
+    
+    # client_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(message))
     
     # message = create_message(MessageType.ONLINES.value, "Salam")
     # for key in reversed(public_keys):
