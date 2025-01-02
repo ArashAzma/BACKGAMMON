@@ -185,9 +185,8 @@ def start_server():
                         # conn.sendall("hi".encode())
                         clients.append(address)
                 elif protocol != MessageType.ANYREQUEST.value:
-                    print("here")
-                    conn.sendall("you have".encode())
-                    print("i sent that")
+                    conn.sendall("requests".encode())
+                    print("i sent requests to client")
         except Exception as e:
             print(f"Error handling client: {e}")
         finally:
