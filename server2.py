@@ -112,6 +112,11 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     pre_node_socket.connect(next_address)    
                     server_conn, server_addr = relay_socket.accept()
                     hi_data = server_conn.recv(buffer_size)
+                    print("hey1")
+                    server_conn, server_addr = relay_socket.accept()
+                    print("hey2")
+                    hi_data = server_conn.recv(buffer_size)
+                    print("hey3")
 
                 if (index==1 and times == 1):
                     PUBLIC_MODE = False                    
@@ -119,18 +124,28 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     pre_node_socket.connect(next_address)    
                     server_conn, server_addr = relay_socket.accept()
                     hi_data = server_conn.recv(buffer_size)
+                    print("hey1")
+                    server_conn, server_addr = relay_socket.accept()
+                    print("hey2")
+                    hi_data = server_conn.recv(buffer_size)
+                    print("hey3")
 
                 if (index==2 and times == 0):
                     PUBLIC_MODE = False                    
                     pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     pre_node_socket.connect(next_address)    
+                    print("hey1")
                     server_conn, server_addr = relay_socket.accept()
+                    print("hey2")
                     hi_data = server_conn.recv(buffer_size)
+                    print("hey3")
             else:
                 data = client_conn.recv(buffer_size)
-                data = pre_node_socket.recv()
                 if data == b'':
-                    continue    
+                    data = pre_node_socket.recv()
+                    if data == b'':
+                        continue
+
                 print(f"i recieved {index}")
                 
                 toWho, data = parse_message(data)
