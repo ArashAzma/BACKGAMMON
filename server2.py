@@ -87,9 +87,10 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     CONNECTION_MODE = False
             else:
                 data = client_conn.recv(buffer_size)
+                if data == b'' :
+                    continue    
                 toWho, data = parse_message(data)
                 data = decrypt_message(base64.b64decode(data), private_key)
-                print(f"1 : {index}")
                 print(f"toWho : {toWho}")
                 if toWho == MessageType.TOCLIENT.value : 
                     if data == b'':
@@ -103,17 +104,14 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                         data = create_message(MessageType.TOCLIENT.value, data)
                         pre_node_socket.sendall(data)
                 else : 
-                    print("sending1")
                     if data == b'':
                         continue
                     if index == 2:
                         next_node_socket.sendall(data)
                         print('SENT FINAL MESSAGE', data)
                     else:
-                        print("sending")    
                         next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
-                        print("after")
-
+                        
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
             break
