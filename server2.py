@@ -116,17 +116,25 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     PUBLIC_MODE = False    
                 
             else:
-                data = client_conn.recv(buffer_size)
-                if data != b'' :       
-                    data = decrypt_message(data, private_key)    
-                    next_node_socket.sendall(data)
-
-                data = next_node_socket.recv(buffer_size)
-                if data != b'' :       
-                    data = encrypt_message(data, public_key)
-                    # print("encrupted", index)
-                    client_conn.sendall(data)
-                    # print("sent", index)
+                    next_node_socket.setblocking(False)
+                    client_conn.setblocking(False)
+                    while(True):
+                        try :
+                            data = next_node_socket.recv(buffer_size)
+                            if data != b'' :       
+                                data = encrypt_message(data, public_key)
+                                client_conn.sendall(data)
+                                data = b''
+                        except BlockingIOError:
+                            pass
+                        try :
+                            data = client_conn.recv(buffer_size)
+                            if data != b'' :       
+                                data = decrypt_message(data, private_key)    
+                                next_node_socket.sendall(data)
+                                data = b''
+                        except BlockingIOError:
+                            pass                            
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
             break
@@ -174,8 +182,12 @@ def start_server():
                     if(address not in clients):
                         serialized_clients = pickle.dumps(clients)
                         message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-                        conn.sendall("hi".encode())
+                        # conn.sendall("hi".encode())
                         clients.append(address)
+                elif protocol != MessageType.ANYREQUEST.value:
+                    print("here")
+                    conn.sendall("you have".encode())
+                    print("i sent that")
         except Exception as e:
             print(f"Error handling client: {e}")
         finally:

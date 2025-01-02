@@ -24,6 +24,7 @@ def generate_client_keys():
 alone = True
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 private_keys, public_keys = generate_client_keys()
+my_address = ""
 
 def find_my_port():
     my_start_node = ONION_PORT
@@ -40,30 +41,69 @@ def find_my_port():
     
 def decrypt_server_message(message, private_keys):
     for pk in private_keys:
-        message = decrypt_message(message, pk)
-        
+        message = decrypt_message(message, pk)        
     return message
 
+def encrypt_server_message(message, public_keys):
+    for pk in reversed(public_keys):
+        message = encrypt_message(message, pk)        
+    return message
+
+def get_ans(ans) :
+    global state, opponent, opponent_port, alone
+    if ans == "accepted" :
+        opponent = (SERVER, int(opponent_port))
+        client_socket.recvfrom(BUFFER_SIZE)
+        alone = False
+    else : 
+        client_socket.recvfrom(BUFFER_SIZE)
+        print("not accepted")
+    state = None
+
+
+def decline():
+    choose_opoonent_msg = create_message("decline", None)
+    client_socket.sendto(choose_opoonent_msg)
+    return
+
+def accept() :
+    global alone, opponent, requested
+    choose_opoonent_msg = create_message("accept", None)
+    client_socket.send(choose_opoonent_msg)
+    opponent_port = requested
+    opponent = (SERVER, int(opponent_port))
+    alone = False
+    return
+
+
+def send_request() :
+    global opponent_port, state, my_address
+    state = "waiting"
+    opponent_port = input()
+    message = f"{my_address}:{opponent_port}"
+    choose_opoonent_msg = create_message(message, MessageType.REQUEST.value)
+    client_socket.send(encrypt_server_message(choose_opoonent_msg))
+
 def requestListen() :
-    global client_socket, requested, private_keys
+    global client_socket, requested, private_keys, alone
     print("im listening")
     while alone:
-        data, _ = client_socket.recvfrom(BUFFER_SIZE)
-        data = decrypt_server_message(data, private_keys)
-        print("from server" ,data.decode())
-        # data1, data2 = data.split(':')[-2:]
-        # if data1 == "request": 
-        #     print('==========You Got a request==========')
-        #     print('Do you wanna play with', data2.split("with ")[-1])
-        #     requested = data2.split("with ")[-1]   
-        # elif data1 == "ans":
-        #     get_ans(data2)
-
+        message = f"{my_address}"
+        choose_opoonent_msg = create_message(message, MessageType.ANYREQUEST.value)
+        client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+        requests = client_socket.recv(BUFFER_SIZE)
+        requests = decrypt_server_message(requests, private_keys)
+        if requests != "any" :
+            print(requests)
+        alone = False
+    
 def connect_to_server():
     CONNECTION_MODE = True
+    global my_address
     port = find_my_port()
     client_socket.connect((SERVER, port))
     my_address = client_socket.getsockname()
+
     print(f' MY ADDRESS {my_address} --- MY NODE PORT {port}')
     
     global private_keys, public_keys
@@ -117,12 +157,8 @@ def connect_to_server():
         protocol, message = parse_message(data)
         print(f'PUBLIC KEY {i} was a SUCCESS:', message)
     
-    
     message = create_message("connect", my_address)
-    for key in reversed(public_keys):
-        message = encrypt_message(message, key)
-
-    client_socket.sendall(message)
+    client_socket.sendall(encrypt_server_message(message, public_keys))
     print('Sent connect')
 
     requestListener = threading.Thread(target=requestListen)
@@ -139,10 +175,5 @@ def connect_to_server():
                 accept()
             case MessageType.DECLINE.value : 
                 decline()
-    message = create_message(MessageType.ONLINES.value, "Salam")
-    for key in reversed(public_keys):
-        message = encrypt_message(message, key)
-    client_socket.sendall(message)
-    print('Sent onlines')
     
 connect_to_server()
