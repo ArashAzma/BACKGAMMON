@@ -120,15 +120,12 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     continue    
                 data = decrypt_message(data, private_key)
                 if index == 2:
-                    next_node_socket.sendall(data)
                     print('SENT FINAL MESSAGE', data)
-                    data_from_server = next_node_socket.recv(BUFFER_SIZE)
-                    client_conn.sendall(data_from_server)
-                    # print('**GOT MESSAGE', data_from_server)
-                else:
-                    next_node_socket.sendall(data)
-                    data_from_server = next_node_socket.recv(BUFFER_SIZE)
-                    client_conn.sendall(data_from_server)
+                    
+                next_node_socket.sendall(data)
+                data_from_server = next_node_socket.recv(BUFFER_SIZE)
+                encrypted_data = encrypt_message(data_from_server, public_key)
+                client_conn.sendall(encrypted_data)
                 
                 # toWho, data = parse_message(data)
                 # data = decrypt_message(base64.b64decode(data), private_key)

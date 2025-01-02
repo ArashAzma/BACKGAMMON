@@ -34,6 +34,12 @@ def generate_client_keys():
         public_keys.append(node_public)
         
     return private_keys, public_keys
+
+def decrypt_server_message(message, private_keys):
+    for pk in private_keys:
+        message = decrypt_message(message, pk)
+        
+    return message
     
 def connect_to_server():
     CONNECTION_MODE = True
@@ -109,12 +115,12 @@ def connect_to_server():
     print('Sent connect')
     
     data = client_socket.recv(BUFFER_SIZE)
+    data = decrypt_server_message(data, private_keys)
     protocol, data = parse_client_message(data)
     if protocol == MessageType.ACCEPT.value:
         clients = pickle.loads(data)
         print('Clients successfully connected to the Server')
         print('clients', clients)
-        return clients
     else:
         print('There was an Error with Clients')
     
