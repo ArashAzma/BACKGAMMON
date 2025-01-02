@@ -19,8 +19,10 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     # print(f"Relay node {index} started at {relay_address} forwarding to {next_address}")
 
     CONNECTION_MODE = True
+    PUBLIC_MODE = False
     
     private_key = None
+    public_key = None
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
@@ -80,11 +82,39 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     client_conn.sendall(data)
                     
                 if (index==0 and times == 2):
+                    times = 0
                     CONNECTION_MODE = False
+                    PUBLIC_MODE = True
                 if (index==1 and times == 1):
+                    times = 0
                     CONNECTION_MODE = False
+                    PUBLIC_MODE = True
                 if (index==2 and times == 0):
+                    times = 0
                     CONNECTION_MODE = False
+                    PUBLIC_MODE = True
+                    
+            elif PUBLIC_MODE:
+                data = client_conn.recv(BUFFER_SIZE)
+                
+                if public_key is None:
+                    public_key = load_public_key(data.decode())
+                    message = create_message(MessageType.CONNECT.value, 'success')
+                    client_conn.send(message)
+                    print(f' {index} public_key {public_key}')
+                else:
+                    times+=1
+                    next_node_socket.sendall(data)
+                    data = next_node_socket.recv(BUFFER_SIZE)
+                    client_conn.sendall(data)
+                
+                if (index==0 and times == 2):
+                    PUBLIC_MODE = False
+                if (index==1 and times == 1):
+                    PUBLIC_MODE = False
+                if (index==2 and times == 0):
+                    PUBLIC_MODE = False    
+                
             else:
                 data = client_conn.recv(buffer_size)
                 if data == b'' :

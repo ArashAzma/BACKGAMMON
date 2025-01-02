@@ -48,11 +48,11 @@ def connect_to_server():
         
     #! Send private key 0
     client_socket.sendall(serialize_private_key(private_keys[0]))
-    print('sent key 0')
+    # print('sent key 0')
     
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
-    print('KEY 0 was a SUCCESS:', message)
+    print('PRIVATE KEY 0 was a SUCCESS:', message)
     
     #! Send private key 1
     private_key_bytes = serialize_private_key(private_keys[1])
@@ -61,11 +61,11 @@ def connect_to_server():
     for chunk in encrypted_chunks:
         chunk_size = len(chunk).to_bytes(4, byteorder='big')
         client_socket.sendall(chunk_size + chunk)
-    print('sent key 1')
+    # print('sent key 1')
     
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
-    print('KEY 1 was a SUCCESS:', message)
+    print('PRIVATE KEY 1 was a SUCCESS:', message)
         
     #! Send private key 2
     
@@ -81,11 +81,21 @@ def connect_to_server():
     for chunk in final_chunks:
         chunk_size = len(chunk).to_bytes(4, byteorder='big')
         client_socket.sendall(chunk_size + chunk)
-    print('sent key 2')
+    # print('sent key 2')
 
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
-    print('KEY 2 was a SUCCESS:', message)
+    print('PRIVATE KEY 2 was a SUCCESS:', message)
+    
+    #! Send public keys
+    for i, pk in enumerate(public_keys):
+        client_socket.sendall(serialize_public_key(pk))
+        # print(f'sent public key {i}')
+        data = client_socket.recv(BUFFER_SIZE)
+        protocol, message = parse_message(data)
+        print(f'PUBLIC KEY {i} was a SUCCESS:', message)
+    
+    
     
     
     message = create_message("connect", my_address)

@@ -1,8 +1,8 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
-import os
-from base64 import b64encode, b64decode
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
 
 
 
@@ -90,6 +90,12 @@ def serialize_private_key(private_key):
         encryption_algorithm=serialization.NoEncryption()
     )
 
+def serialize_public_key(public_key):
+    return public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
 def split_and_encrypt_key(private_key_bytes, chunk_size, encryption_key):
     chunks = [private_key_bytes[i:i+chunk_size] for i in range(0, len(private_key_bytes), chunk_size)]
     encrypted_chunks = []
@@ -160,6 +166,14 @@ def load_private_key(private_key_str):
         backend=default_backend(),
     )
     return private_key
+
+def load_public_key(public_key_str):
+    public_key_bytes = public_key_str.encode()  
+    public_key = load_pem_public_key(
+        public_key_bytes,
+        backend=default_backend(),
+    )
+    return public_key
 
 def remove_padding(data):
     # Remove trailing zeros
