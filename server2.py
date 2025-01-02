@@ -108,37 +108,62 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                 
                 if (index==0 and times == 2):
                     PUBLIC_MODE = False                    
-                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    pre_node_socket.connect(next_address)    
-                    server_conn, server_addr = relay_socket.accept()
-                    hi_data = server_conn.recv(buffer_size)
-                    print("hey1")
-                    server_conn, server_addr = relay_socket.accept()
-                    print("hey2")
-                    hi_data = server_conn.recv(buffer_size)
-                    print("hey3")
+                    data == b''
+                    while(data == b'') :
+                        data = client_conn.recv(buffer_size)
+                    toWho, data = parse_message(data)
+                    if toWho == MessageType.TOSERVER.value : 
+                        data = decrypt_message(base64.b64decode(data), private_key)                    
+                        print(f"toWho serverrr : {toWho}")
+                        if data == b'':
+                            continue
+                        next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
+
+                    print("hey11")
+                    pre_node_socket, server_addr = relay_socket.accept()
+                    print("hey21")
+                    hi_data = pre_node_socket.recv(buffer_size)
+                    print("hey31")
 
                 if (index==1 and times == 1):
                     PUBLIC_MODE = False                    
-                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    pre_node_socket.connect(next_address)    
-                    server_conn, server_addr = relay_socket.accept()
-                    hi_data = server_conn.recv(buffer_size)
-                    print("hey1")
-                    server_conn, server_addr = relay_socket.accept()
-                    print("hey2")
-                    hi_data = server_conn.recv(buffer_size)
-                    print("hey3")
+                    data == b''
+                    while(data == b'') :
+                        data = client_conn.recv(buffer_size)
+                    toWho, data = parse_message(data)
+                    if toWho == MessageType.TOSERVER.value : 
+                        data = decrypt_message(base64.b64decode(data), private_key)                    
+                        print(f"toWho serverrr : {toWho}")
+                        if data == b'':
+                            continue
+                        next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
+                    
+                    print("hey12")
+                    pre_node_socket, server_addr = relay_socket.accept()
+                    print("hey22")
+                    hi_data = pre_node_socket.recv(buffer_size)
+                    print("hey32")
 
                 if (index==2 and times == 0):
                     PUBLIC_MODE = False                    
-                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    pre_node_socket.connect(next_address)    
-                    print("hey1")
-                    server_conn, server_addr = relay_socket.accept()
-                    print("hey2")
-                    hi_data = server_conn.recv(buffer_size)
-                    print("hey3")
+                    data == b''
+                    while(data == b'') :
+                        data = client_conn.recv(buffer_size)
+                    toWho, data = parse_message(data)
+                    if toWho == MessageType.TOSERVER.value : 
+                        data = decrypt_message(base64.b64decode(data), private_key)                    
+                        print(f"toWho serverrr : {toWho}")
+                        if data == b'':
+                            continue
+                        print("im in 33")
+                        next_node_socket.sendall(data)
+                        print('SENT FINAL MESSAGE', data)
+
+                    print("hey13")
+                    pre_node_socket, server_addr = relay_socket.accept()
+                    print("hey23")
+                    hi_data = pre_node_socket.recv(buffer_size)
+                    print("hey33")
             else:
                 data = client_conn.recv(buffer_size)
                 if data == b'':
@@ -218,6 +243,7 @@ def start_server():
                     if(address not in clients):
                         serialized_clients = pickle.dumps(clients)
                         message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
+                        print("hi")
                         conn.sendall((MessageType.TOCLIENT.value + "hi").encode())
                         clients.append(address)
         except Exception as e:
