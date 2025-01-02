@@ -31,7 +31,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     
     while True:
         try:
-            if CONNECTION_MODE:
+            if(CONNECTION_MODE):
                 if private_key is None:
                     data = client_conn.recv(buffer_size)
                     if (len(data) == 0):
@@ -101,6 +101,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     public_key = load_public_key(data.decode())
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
+                    print(f' {index} public_key {public_key}')
                 else:
                     times+=1
                     next_node_socket.sendall(data)
@@ -116,40 +117,16 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                 
             else:
                 data = client_conn.recv(buffer_size)
-                if data == b'' :
-                    continue    
-                data = decrypt_message(data, private_key)
-                if index == 2:
-                    print('SENT FINAL MESSAGE', data)
-                    
-                next_node_socket.sendall(data)
-                data_from_server = next_node_socket.recv(BUFFER_SIZE)
-                encrypted_data = encrypt_message(data_from_server, public_key)
-                client_conn.sendall(encrypted_data)
-                
-                # toWho, data = parse_message(data)
-                # data = decrypt_message(base64.b64decode(data), private_key)
-                # print(f"toWho : {toWho}")
-                # if toWho == MessageType.TOCLIENT.value : 
-                #     if data == b'':
-                #         continue
-                #     if index == 0:
-                #         client_address, data = parse_message(data)
-                #         pre_node_socket.connect(client_address)
-                #         pre_node_socket.sendall(data)
-                #         print('SENT FINAL MESSAGE TO CLIENT', data.decode())
-                #     else:
-                #         data = create_message(MessageType.TOCLIENT.value, data)
-                #         pre_node_socket.sendall(data)
-                # else : 
-                #     if data == b'':
-                #         continue
-                #     if index == 2:
-                #         next_node_socket.sendall(data)
-                #         print('SENT FINAL MESSAGE', data)
-                #     else:
-                #         next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
-                        
+                if data != b'' :       
+                    data = decrypt_message(data, private_key)    
+                    next_node_socket.sendall(data)
+
+                data = next_node_socket.recv(buffer_size)
+                if data != b'' :       
+                    data = encrypt_message(data, public_key)
+                    # print("encrupted", index)
+                    client_conn.sendall(data)
+                    # print("sent", index)
         except Exception as e:
             print(f"Relay error at node {index}: {e}")
             break
@@ -168,32 +145,6 @@ def setup_onion_routing(relay_ports, address, relay_function=relay_node):
 
     return relay_addresses
 
-
-def handle_client(conn, addr):
-    print(f"New connection from {addr}")
-    try:
-        while True:
-            data = conn.recv(BUFFER_SIZE)
-            if not data:
-                break
-
-            print(f"Received data from {addr}: {data}")
-            protocol, message = parse_message(data)
-
-            if protocol == MessageType.CONNECT.value:
-                address = message
-                if address not in clients:
-                    clients.append(address)
-                    serialized_clients = pickle.dumps(clients)
-                    response = create_client_message(MessageType.ACCEPT.value, serialized_clients)
-                    conn.sendall(response)
-    except Exception as e:
-        print(f"Error handling client {addr}: {e}")
-    finally:
-        conn.close()
-        print(f"Connection closed with {addr}")
-
-
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((SERVER, SERVER_PORT))
@@ -209,7 +160,27 @@ def start_server():
 
     while True:
         conn, addr = server.accept()
-        threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+        try:
+            while True:
+                data = conn.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                
+                print("data", data)
+                protocol, message = parse_message(data)
+
+                if protocol == MessageType.CONNECT.value:
+                    address = message
+                    if(address not in clients):
+                        serialized_clients = pickle.dumps(clients)
+                        message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
+                        conn.sendall("hi".encode())
+                        clients.append(address)
+        except Exception as e:
+            print(f"Error handling client: {e}")
+        finally:
+            conn.close()
+
 
 if os.path.isfile(CLIENTS_FILE):
     os.remove(CLIENTS_FILE)
