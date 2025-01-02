@@ -26,9 +26,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
-    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
     client_conn, client_addr = relay_socket.accept()
-    
     while True:
         try:
             if(CONNECTION_MODE):
@@ -109,30 +107,46 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     client_conn.sendall(data)
                 
                 if (index==0 and times == 2):
-                    PUBLIC_MODE = False
+                    PUBLIC_MODE = False                    
+                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    pre_node_socket.connect(next_address)    
+                    server_conn, server_addr = relay_socket.accept()
+                    hi_data = server_conn.recv(buffer_size)
+
                 if (index==1 and times == 1):
-                    PUBLIC_MODE = False
+                    PUBLIC_MODE = False                    
+                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    pre_node_socket.connect(next_address)    
+                    server_conn, server_addr = relay_socket.accept()
+                    hi_data = server_conn.recv(buffer_size)
+
                 if (index==2 and times == 0):
-                    PUBLIC_MODE = False    
-                
+                    PUBLIC_MODE = False                    
+                    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    pre_node_socket.connect(next_address)    
+                    server_conn, server_addr = relay_socket.accept()
+                    hi_data = server_conn.recv(buffer_size)
             else:
                 data = client_conn.recv(buffer_size)
-                if data == b'' :
+                data = pre_node_socket.recv()
+                if data == b'':
                     continue    
+                print(f"i recieved {index}")
+                
                 toWho, data = parse_message(data)
-                data = decrypt_message(base64.b64decode(data), private_key)
+                if toWho == MessageType.TOSERVER.value : 
+                    data = decrypt_message(base64.b64decode(data), private_key)
+                
                 print(f"toWho : {toWho}")
                 if toWho == MessageType.TOCLIENT.value : 
                     if data == b'':
                         continue
                     if index == 0:
-                        client_address, data = parse_message(data)
-                        pre_node_socket.connect(client_address)
                         pre_node_socket.sendall(data)
                         print('SENT FINAL MESSAGE TO CLIENT', data.decode())
                     else:
-                        data = create_message(MessageType.TOCLIENT.value, data)
-                        pre_node_socket.sendall(data)
+                        encrypted_data = encrypt_message(data, public_key)
+                        pre_node_socket.sendall((MessageType.TOCLIENT.value).encode() + base64.b64encode(encrypted_data))
                 else : 
                     if data == b'':
                         continue
@@ -189,7 +203,7 @@ def start_server():
                     if(address not in clients):
                         serialized_clients = pickle.dumps(clients)
                         message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-                        # conn.sendall(message)
+                        conn.sendall((MessageType.TOCLIENT.value + "hi").encode())
                         clients.append(address)
         except Exception as e:
             print(f"Error handling client: {e}")
