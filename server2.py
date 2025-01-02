@@ -100,14 +100,14 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                         pre_node_socket.sendall(data)
                         print('SENT FINAL MESSAGE TO CLIENT', data.decode())
                     else:
-                        data = create_message(MessageType.TOCLIENT, data)
+                        data = create_message(MessageType.TOCLIENT.value, data)
                         pre_node_socket.sendall(data)
                 else : 
                     print("sending1")
                     if data == b'':
                         continue
                     if index == 2:
-                        next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
+                        next_node_socket.sendall(data)
                         print('SENT FINAL MESSAGE', data)
                     else:
                         print("sending")    
