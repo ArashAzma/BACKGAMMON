@@ -2,6 +2,7 @@ import socket
 import threading
 import pickle
 import os
+import base64
 from utils.key2 import *
 from utils.constants import *
 from utils.helper import *
@@ -23,6 +24,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
+    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
     client_conn, client_addr = relay_socket.accept()
     
     while True:
@@ -85,14 +87,32 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     CONNECTION_MODE = False
             else:
                 data = client_conn.recv(buffer_size)
-                data = decrypt_message(data, private_key)
-                if data == b'':
-                    continue
-                if index == 2:
-                    next_node_socket.sendall(data)
-                    print('SENT FINAL MESSAGE', data.decode())
-                else:
-                    next_node_socket.sendall(data)
+                toWho, data = parse_message(data)
+                data = decrypt_message(base64.b64decode(data), private_key)
+                print(f"1 : {index}")
+                print(f"toWho : {toWho}")
+                if toWho == MessageType.TOCLIENT.value : 
+                    if data == b'':
+                        continue
+                    if index == 0:
+                        client_address, data = parse_message(data)
+                        pre_node_socket.connect(client_address)
+                        pre_node_socket.sendall(data)
+                        print('SENT FINAL MESSAGE TO CLIENT', data.decode())
+                    else:
+                        data = create_message(MessageType.TOCLIENT, data)
+                        pre_node_socket.sendall(data)
+                else : 
+                    print("sending1")
+                    if data == b'':
+                        continue
+                    if index == 2:
+                        next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
+                        print('SENT FINAL MESSAGE', data)
+                    else:
+                        print("sending")    
+                        next_node_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(data))
+                        print("after")
 
         except Exception as e:
             print(f"Relay error at node {index}: {e}")

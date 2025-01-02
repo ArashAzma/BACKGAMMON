@@ -1,6 +1,7 @@
 import socket
 import pickle
 import time
+import base64
 from utils.key2 import * 
 from utils.constants import * 
 from utils.helper import * 
@@ -89,14 +90,17 @@ def connect_to_server():
     
     message = create_message("connect", my_address)
     for key in reversed(public_keys):
+        # message = create_message(MessageType.TOSERVER.value, message)
         message = encrypt_message(message, key)
-    client_socket.sendall(message)
+        # message = create_message(MessageType.TOSERVER.value, message)
+
+    client_socket.sendall((MessageType.TOSERVER.value+':').encode() + base64.b64encode(message))
     print('Sent connect')
     
-    message = create_message("connect", "Salam")
-    for key in reversed(public_keys):
-        message = encrypt_message(message, key)
-    client_socket.sendall(message)
-    print('Sent salam')
+    # message = create_message(MessageType.ONLINES.value, "Salam")
+    # for key in reversed(public_keys):
+    #     message = encrypt_message(message, key)
+    # client_socket.sendall(message)
+    # print('Sent onlines')
     
 connect_to_server()
