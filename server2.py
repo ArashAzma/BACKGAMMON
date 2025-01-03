@@ -175,8 +175,9 @@ def handle_client(conn, addr):
                     message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
                     clients.append(address)
             elif protocol == MessageType.ANYREQUEST.value:
-
-                serialized_requests = pickle.dumps(requests_list)
+                # client_address, opponent_address = message.split(b";", 1)
+                
+                serialized_requests = pickle.dumps([entry for entry in requests_list if entry.split(";")[1] == message])
                 serialized_clients = pickle.dumps(clients)
 
                 response = create_client_message(MessageType.ONLINES.value, serialized_clients)
@@ -190,7 +191,6 @@ def handle_client(conn, addr):
             elif protocol == MessageType.REQUEST.value:
                 requests_list.append(message)
             elif protocol == MessageType.ACCEPT.value:
-                print("im in accept")
                 accepts.append(message)
                 print(accepts)
             elif protocol == MessageType.DECLINE.value:

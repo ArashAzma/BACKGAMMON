@@ -66,8 +66,8 @@ def decline():
     print("enter the port you wanna decline :")
     port = input()
     opponent_address = (SERVER, int(port))
-    addresses = (my_address, opponent_address)
-    choose_opoonent_msg = create_message(MessageType.DECLINE.value, addresses)
+    message = f"{my_address};{opponent_address}"
+    choose_opoonent_msg = create_message(MessageType.ACCEPT.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
 def accept() :
@@ -75,8 +75,8 @@ def accept() :
     print("enter the port you wanna accept :")
     port = input()
     opponent_address = (SERVER, int(port))
-    addresses = (my_address, opponent_address)
-    choose_opoonent_msg = create_message(MessageType.ACCEPT.value, addresses)
+    message = f"{my_address};{opponent_address}"
+    choose_opoonent_msg = create_message(MessageType.ACCEPT.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
     opponent = (SERVER, int(port))
     alone = False
@@ -86,8 +86,9 @@ def send_request() :
     global opponent_port, state, my_address
     state = "waiting"
     print("enter your opponent port")
-    opponent_port = input()
-    message = f"{my_address}:{opponent_port}"
+    port = input()
+    opponent_address = (SERVER, int(port))
+    message = f"{my_address};{opponent_address}"
     choose_opoonent_msg = create_message(MessageType.REQUEST.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
