@@ -109,7 +109,7 @@ def requestListen() :
         if protocol == MessageType.ONLINES.value:
             clients = pickle.loads(data)
             if clients != onlines :
-                print('online clients :', clients)
+                show_online_users(clients, my_address)
                 onlines = clients
         else:
             print('There was an Error with Clients')

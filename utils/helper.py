@@ -23,3 +23,14 @@ def parse_client_message(message: bytes) -> tuple[str, bytes]:
     # Split on first occurrence of separator
     header, payload = message.split(b":", 1)
     return header.decode(), payload
+
+def show_online_users(clients, my_address):
+    users = clients.copy()
+    users.remove(f'{my_address}')
+    print('\nOnline players:')
+    if(len(users) > 0):
+        for client in users:
+            client =  eval(client)
+            print('\t',client[1])
+    else:
+        print('Nobody is online')
