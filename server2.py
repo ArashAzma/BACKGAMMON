@@ -11,7 +11,8 @@ import time
 from base64 import b64encode, b64decode
 
 clients = []
-
+requests_list = []
+    
 def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     relay_socket.bind(relay_address)
@@ -154,9 +155,50 @@ def setup_onion_routing(relay_ports, address, relay_function=relay_node):
 
     return relay_addresses
 
+def handle_client(conn, addr):
+    global requests_list
+    print(f"New connection from {addr}")
+    try:
+        while True:
+    
+            data = conn.recv(BUFFER_SIZE)
+            if not data:
+                break
+            
+            # print(data)
+            protocol, message = parse_message(data)
+            # print(protocol)
+            if protocol == MessageType.CONNECT.value:
+                address = message
+                if(address not in clients):
+                    serialized_clients = pickle.dumps(clients)
+                    message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
+                    # conn.sendall("hi".encode())
+                    clients.append(address)
+            elif protocol == MessageType.ANYREQUEST.value:
+
+                serialized_requests = pickle.dumps(requests_list)
+                serialized_clients = pickle.dumps(clients)
+
+                response = create_client_message(MessageType.ONLINES.value, serialized_clients)
+                conn.sendall(response)
+
+                time.sleep(0.1)
+
+                response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
+                conn.sendall(response)
+
+            elif protocol == MessageType.REQUEST.value:
+                requests_list.append(message)
+
+    except Exception as e:
+        print(f"Error handling client: {e}")
+    finally:
+        conn.close()
+
+
 def start_server():
-    requests_list = []
-    requests_list.append("requests")
+    global requests_list
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((SERVER, SERVER_PORT))
     server.listen(100)
@@ -171,45 +213,49 @@ def start_server():
 
     while True:
         conn, addr = server.accept()
-        try:
-            while True:
+        threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+
+    # while True:
+    #     conn, addr = server.accept()
+    #     try:
+    #         while True:
         
-                data = conn.recv(BUFFER_SIZE)
-                if not data:
-                    break
+    #             data = conn.recv(BUFFER_SIZE)
+    #             if not data:
+    #                 break
                 
-                # print(data)
-                protocol, message = parse_message(data)
-                # print(protocol)
-                if protocol == MessageType.CONNECT.value:
-                    address = message
-                    if(address not in clients):
-                        serialized_clients = pickle.dumps(clients)
-                        message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-                        # conn.sendall("hi".encode())
-                        clients.append(address)
-                elif protocol == MessageType.ANYREQUEST.value:
+    #             # print(data)
+    #             protocol, message = parse_message(data)
+    #             # print(protocol)
+    #             if protocol == MessageType.CONNECT.value:
+    #                 address = message
+    #                 if(address not in clients):
+    #                     serialized_clients = pickle.dumps(clients)
+    #                     message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
+    #                     # conn.sendall("hi".encode())
+    #                     clients.append(address)
+    #             elif protocol == MessageType.ANYREQUEST.value:
 
-                    serialized_requests = pickle.dumps(requests_list)
-                    serialized_clients = pickle.dumps(clients)
+    #                 serialized_requests = pickle.dumps(requests_list)
+    #                 serialized_clients = pickle.dumps(clients)
 
-                    response = create_client_message(MessageType.ONLINES.value, serialized_clients)
-                    conn.sendall(response)
+    #                 response = create_client_message(MessageType.ONLINES.value, serialized_clients)
+    #                 conn.sendall(response)
 
-                    time.sleep(0.1)
+    #                 time.sleep(0.1)
 
-                    response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
-                    conn.sendall(response)
+    #                 response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
+    #                 conn.sendall(response)
 
-                    # print("i sent requests to client")
+    #                 # print("i sent requests to client")
                 
-                elif protocol == MessageType.REQUEST.value:
-                    requests_list.append(message)
+    #             elif protocol == MessageType.REQUEST.value:
+    #                 requests_list.append(message)
 
-        except Exception as e:
-            print(f"Error handling client: {e}")
-        finally:
-            conn.close()
+    #     except Exception as e:
+    #         print(f"Error handling client: {e}")
+    #     finally:
+    #         conn.close()
 
 
 if os.path.isfile(CLIENTS_FILE):
