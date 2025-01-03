@@ -22,6 +22,7 @@ def generate_client_keys():
     return private_keys, public_keys
 
 alone = True
+opponent = None
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 private_keys, public_keys = generate_client_keys()
 my_address = ""
@@ -62,18 +63,23 @@ def get_ans(ans) :
 
 
 def decline():
-    choose_opoonent_msg = create_message("decline", None)
-    client_socket.sendto(choose_opoonent_msg)
-    return
+    print("enter the port you wanna decline :")
+    port = input()
+    opponent_address = (SERVER, int(port))
+    addresses = (my_address, opponent_address)
+    choose_opoonent_msg = create_message(MessageType.DECLINE.value, addresses)
+    client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
 def accept() :
-    global alone, opponent, requested
-    choose_opoonent_msg = create_message("accept", None)
-    client_socket.send(choose_opoonent_msg)
-    opponent_port = requested
-    opponent = (SERVER, int(opponent_port))
+    global alone, opponent
+    print("enter the port you wanna accept :")
+    port = input()
+    opponent_address = (SERVER, int(port))
+    addresses = (my_address, opponent_address)
+    choose_opoonent_msg = create_message(MessageType.ACCEPT.value, addresses)
+    client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
+    opponent = (SERVER, int(port))
     alone = False
-    return
 
 
 def send_request() :

@@ -12,6 +12,8 @@ from base64 import b64encode, b64decode
 
 clients = []
 requests_list = []
+declines = []
+accepts = []
     
 def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -156,7 +158,7 @@ def setup_onion_routing(relay_ports, address, relay_function=relay_node):
     return relay_addresses
 
 def handle_client(conn, addr):
-    global requests_list
+    global requests_list, declines, accepts
     print(f"New connection from {addr}")
     try:
         while True:
@@ -165,15 +167,12 @@ def handle_client(conn, addr):
             if not data:
                 break
             
-            # print(data)
             protocol, message = parse_message(data)
-            # print(protocol)
             if protocol == MessageType.CONNECT.value:
                 address = message
                 if(address not in clients):
                     serialized_clients = pickle.dumps(clients)
                     message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-                    # conn.sendall("hi".encode())
                     clients.append(address)
             elif protocol == MessageType.ANYREQUEST.value:
 
@@ -190,7 +189,14 @@ def handle_client(conn, addr):
 
             elif protocol == MessageType.REQUEST.value:
                 requests_list.append(message)
-
+            elif protocol == MessageType.ACCEPT.value:
+                print("im in accept")
+                accepts.append(message)
+                print(accepts)
+            elif protocol == MessageType.DECLINE.value:
+                declines.append(message)
+                print("declines :", declines)
+            
     except Exception as e:
         print(f"Error handling client: {e}")
     finally:
