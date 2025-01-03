@@ -215,49 +215,6 @@ def start_server():
         conn, addr = server.accept()
         threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
 
-    # while True:
-    #     conn, addr = server.accept()
-    #     try:
-    #         while True:
-        
-    #             data = conn.recv(BUFFER_SIZE)
-    #             if not data:
-    #                 break
-                
-    #             # print(data)
-    #             protocol, message = parse_message(data)
-    #             # print(protocol)
-    #             if protocol == MessageType.CONNECT.value:
-    #                 address = message
-    #                 if(address not in clients):
-    #                     serialized_clients = pickle.dumps(clients)
-    #                     message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
-    #                     # conn.sendall("hi".encode())
-    #                     clients.append(address)
-    #             elif protocol == MessageType.ANYREQUEST.value:
-
-    #                 serialized_requests = pickle.dumps(requests_list)
-    #                 serialized_clients = pickle.dumps(clients)
-
-    #                 response = create_client_message(MessageType.ONLINES.value, serialized_clients)
-    #                 conn.sendall(response)
-
-    #                 time.sleep(0.1)
-
-    #                 response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
-    #                 conn.sendall(response)
-
-    #                 # print("i sent requests to client")
-                
-    #             elif protocol == MessageType.REQUEST.value:
-    #                 requests_list.append(message)
-
-    #     except Exception as e:
-    #         print(f"Error handling client: {e}")
-    #     finally:
-    #         conn.close()
-
-
 if os.path.isfile(CLIENTS_FILE):
     os.remove(CLIENTS_FILE)
     
