@@ -192,11 +192,20 @@ def handle_client(conn, addr):
                 requests_list.append(message)
             elif protocol == MessageType.ACCEPT.value:
                 accepts.append(message)
-                print(accepts)
             elif protocol == MessageType.DECLINE.value:
                 declines.append(message)
-                print("declines :", declines)
-            
+            elif protocol == MessageType.ANYACCEPT.value:
+                serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
+                serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
+                
+                response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_accepts)
+                conn.sendall(response)
+
+                time.sleep(0.1)
+
+                response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_declines)
+                conn.sendall(response)           
+
     except Exception as e:
         print(f"Error handling client: {e}")
     finally:

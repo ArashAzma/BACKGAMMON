@@ -21,6 +21,7 @@ def generate_client_keys():
         
     return private_keys, public_keys
 
+state = None
 alone = True
 opponent = None
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,7 +68,7 @@ def decline():
     port = input()
     opponent_address = (SERVER, int(port))
     message = f"{my_address};{opponent_address}"
-    choose_opoonent_msg = create_message(MessageType.ACCEPT.value, message)
+    choose_opoonent_msg = create_message(MessageType.DECLINE.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
 def accept() :
@@ -95,7 +96,7 @@ def send_request() :
 def requestListen() :
     requests = []
     onlines = []
-    global client_socket, requested, private_keys, alone
+    global client_socket, requested, private_keys, alone, state
     print("im listening")
     while alone:
         message = f"{my_address}"
@@ -125,7 +126,32 @@ def requestListen() :
                 print('requests :', clients)
                 requests = clients
         
-        
+        if state == "waiting" :        
+            message = f"{my_address}"
+            choose_opoonent_msg = create_message(MessageType.ANYACCEPT.value, message)
+            client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+                
+            dataAccept = client_socket.recv(BUFFER_SIZE)
+            dataDecline = client_socket.recv(BUFFER_SIZE)
+            
+            dataAccept = decrypt_server_message(dataAccept, private_keys)
+            protocol, dataAccept = parse_client_message(dataAccept)
+            if protocol == MessageType.ANYACCEPTRES.value:
+                dataAccept = pickle.loads(dataAccept)
+                if dataAccept != [] :
+                    print('accepted :', dataAccept)
+                    state = None    #need to be changed!!!
+            
+            time.sleep(0.1)
+            
+            dataDecline = decrypt_server_message(dataDecline, private_keys)
+            protocol, dataDecline = parse_client_message(dataDecline)
+            if protocol == MessageType.ANYACCEPTRES.value:
+                dataDecline = pickle.loads(dataDecline)
+                if dataDecline != [] :
+                    print('declined :', dataDecline)
+                    state = None    #need to be changed!!!
+
 def connect_to_server():
     CONNECTION_MODE = True
     global my_address

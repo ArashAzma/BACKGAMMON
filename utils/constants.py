@@ -33,3 +33,5 @@ class MessageType(Enum):
     ONLINES = "onlines"
     ANYREQUEST = "anyrequest"
     REQUESTS = "requests"
+    ANYACCEPT = "anyAccept"
+    ANYACCEPTRES = "anyAcceptres"
