@@ -85,38 +85,39 @@ def send_request() :
     client_socket.send(encrypt_server_message(choose_opoonent_msg))
 
 def requestListen() :
+    requests = []
+    onlines = []
     global client_socket, requested, private_keys, alone
     print("im listening")
     while alone:
         message = f"{my_address}"
         choose_opoonent_msg = create_message(MessageType.ANYREQUEST.value, message)
         client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
-        #get requests
-        requests = client_socket.recv(BUFFER_SIZE)
-        requests = decrypt_server_message(requests, private_keys)
-        protocol, data = parse_client_message(requests)
-        if protocol == MessageType.REQUESTS.value:
-            clients = pickle.loads(data)
-            print('requests :', clients)
-        time.sleep(0.1)
         
         #get clients list
         data = client_socket.recv(BUFFER_SIZE)
-        print("hey")
         data = decrypt_server_message(data, private_keys)
         protocol, data = parse_client_message(data)
         if protocol == MessageType.ONLINES.value:
             clients = pickle.loads(data)
-            print('online clients :', clients)
-
+            if clients != onlines :
+                print('online clients :', clients)
+                onlines = clients
         else:
             print('There was an Error with Clients')
+        
+        time.sleep(0.2)
 
-        # requests = decrypt_server_message(requests, private_keys)
-        # if requests != "any" :
-        #     print(requests)
-        alone = False
-    
+        data = client_socket.recv(BUFFER_SIZE)
+        data = decrypt_server_message(data, private_keys)
+        protocol, data = parse_client_message(data)
+        if protocol == MessageType.REQUESTS.value:
+            clients = pickle.loads(data)
+            if requests != clients :
+                print('requests :', clients)
+                requests = clients
+        
+        
 def connect_to_server():
     CONNECTION_MODE = True
     global my_address

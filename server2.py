@@ -192,12 +192,12 @@ def start_server():
                     serialized_requests = pickle.dumps(requests_list)
                     serialized_clients = pickle.dumps(clients)
 
-                    response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
+                    response = create_client_message(MessageType.ONLINES.value, serialized_clients)
                     conn.sendall(response)
 
                     time.sleep(0.1)
 
-                    response = create_client_message(MessageType.ONLINES.value, serialized_clients)
+                    response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
                     conn.sendall(response)
 
                     print("i sent requests to client")
