@@ -79,10 +79,11 @@ def accept() :
 def send_request() :
     global opponent_port, state, my_address
     state = "waiting"
+    print("enter your opponent port")
     opponent_port = input()
     message = f"{my_address}:{opponent_port}"
     choose_opoonent_msg = create_message(MessageType.REQUEST.value, message)
-    client_socket.send(encrypt_server_message(choose_opoonent_msg))
+    client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
 def requestListen() :
     requests = []

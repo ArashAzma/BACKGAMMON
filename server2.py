@@ -173,13 +173,14 @@ def start_server():
         conn, addr = server.accept()
         try:
             while True:
+        
                 data = conn.recv(BUFFER_SIZE)
                 if not data:
                     break
                 
-                print(data)
+                # print(data)
                 protocol, message = parse_message(data)
-                print(protocol)
+                # print(protocol)
                 if protocol == MessageType.CONNECT.value:
                     address = message
                     if(address not in clients):
@@ -200,7 +201,7 @@ def start_server():
                     response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
                     conn.sendall(response)
 
-                    print("i sent requests to client")
+                    # print("i sent requests to client")
                 
                 elif protocol == MessageType.REQUEST.value:
                     requests_list.append(message)
