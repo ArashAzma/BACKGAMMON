@@ -201,6 +201,10 @@ def start_server():
                     conn.sendall(response)
 
                     print("i sent requests to client")
+                
+                elif protocol == MessageType.REQUEST.value:
+                    requests_list.append(message)
+
         except Exception as e:
             print(f"Error handling client: {e}")
         finally:
