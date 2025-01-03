@@ -7,6 +7,7 @@ from utils.key2 import *
 from utils.constants import *
 from utils.helper import *
 import rsa
+import time
 from base64 import b64encode, b64decode
 
 clients = []
@@ -101,7 +102,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
                     public_key = load_public_key(data.decode())
                     message = create_message(MessageType.CONNECT.value, 'success')
                     client_conn.send(message)
-                    print(f' {index} public_key {public_key}')
+                    # print(f' {index} public_key {public_key}')
                 else:
                     times+=1
                     next_node_socket.sendall(data)
@@ -154,6 +155,8 @@ def setup_onion_routing(relay_ports, address, relay_function=relay_node):
     return relay_addresses
 
 def start_server():
+    requests_list = []
+    requests_list.append("requests")
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((SERVER, SERVER_PORT))
     server.listen(100)
@@ -174,9 +177,9 @@ def start_server():
                 if not data:
                     break
                 
-                print("data", data)
+                print(data)
                 protocol, message = parse_message(data)
-
+                print(protocol)
                 if protocol == MessageType.CONNECT.value:
                     address = message
                     if(address not in clients):
@@ -184,8 +187,19 @@ def start_server():
                         message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
                         # conn.sendall("hi".encode())
                         clients.append(address)
-                elif protocol != MessageType.ANYREQUEST.value:
-                    conn.sendall("requests".encode())
+                elif protocol == MessageType.ANYREQUEST.value:
+
+                    serialized_requests = pickle.dumps(requests_list)
+                    serialized_clients = pickle.dumps(clients)
+
+                    response = create_client_message(MessageType.REQUESTS.value, serialized_requests)
+                    conn.sendall(response)
+
+                    time.sleep(0.1)
+
+                    response = create_client_message(MessageType.ONLINES.value, serialized_clients)
+                    conn.sendall(response)
+
                     print("i sent requests to client")
         except Exception as e:
             print(f"Error handling client: {e}")

@@ -32,3 +32,4 @@ class MessageType(Enum):
     TOCLIENT = "toClient"
     ONLINES = "onlines"
     ANYREQUEST = "anyrequest"
+    REQUESTS = "requests"

@@ -89,12 +89,32 @@ def requestListen() :
     print("im listening")
     while alone:
         message = f"{my_address}"
-        choose_opoonent_msg = create_message(message, MessageType.ANYREQUEST.value)
+        choose_opoonent_msg = create_message(MessageType.ANYREQUEST.value, message)
         client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+        #get requests
         requests = client_socket.recv(BUFFER_SIZE)
         requests = decrypt_server_message(requests, private_keys)
-        if requests != "any" :
-            print(requests)
+        protocol, data = parse_client_message(requests)
+        if protocol == MessageType.REQUESTS.value:
+            clients = pickle.loads(data)
+            print('requests :', clients)
+        time.sleep(0.1)
+        
+        #get clients list
+        data = client_socket.recv(BUFFER_SIZE)
+        print("hey")
+        data = decrypt_server_message(data, private_keys)
+        protocol, data = parse_client_message(data)
+        if protocol == MessageType.ONLINES.value:
+            clients = pickle.loads(data)
+            print('online clients :', clients)
+
+        else:
+            print('There was an Error with Clients')
+
+        # requests = decrypt_server_message(requests, private_keys)
+        # if requests != "any" :
+        #     print(requests)
         alone = False
     
 def connect_to_server():
@@ -157,10 +177,11 @@ def connect_to_server():
         protocol, message = parse_message(data)
         print(f'PUBLIC KEY {i} was a SUCCESS:', message)
     
+
     message = create_message("connect", my_address)
     client_socket.sendall(encrypt_server_message(message, public_keys))
     print('Sent connect')
-
+    time.sleep(0.1)
     requestListener = threading.Thread(target=requestListen)
     requestListener.daemon = True
     requestListener.start()
