@@ -8,6 +8,7 @@ from utils.helper import *
 import rsa
 from base64 import b64encode, b64decode
 import zlib
+import ast
 import threading
 
 def generate_client_keys():
@@ -75,11 +76,10 @@ def accept() :
     global alone, opponent
     print("enter the port you wanna accept :")
     port = input()
-    opponent_address = (SERVER, int(port))
-    message = f"{my_address};{opponent_address}"
+    opponent= (SERVER, int(port))
+    message = f"{my_address};{opponent}"
     choose_opoonent_msg = create_message(MessageType.ACCEPT.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
-    opponent = (SERVER, int(port))
     alone = False
 
 
@@ -94,6 +94,7 @@ def send_request() :
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
 
 def requestListen() :
+
     requests = []
     onlines = []
     global client_socket, requested, private_keys, alone, state
@@ -125,7 +126,7 @@ def requestListen() :
             if requests != clients :
                 print('requests :', clients)
                 requests = clients
-        
+        global opponent
         if state == "waiting" :        
             message = f"{my_address}"
             choose_opoonent_msg = create_message(MessageType.ANYACCEPT.value, message)
@@ -139,8 +140,10 @@ def requestListen() :
             if protocol == MessageType.ANYACCEPTRES.value:
                 dataAccept = pickle.loads(dataAccept)
                 if dataAccept != [] :
-                    print('accepted :', dataAccept)
+                    print('accepted :', dataAccept[0])
+                    opponent = dataAccept[0]
                     state = None    #need to be changed!!!
+                    alone = False
             
             time.sleep(0.1)
             
@@ -152,6 +155,20 @@ def requestListen() :
                     print('declined :', dataDecline)
                     state = None    #need to be changed!!!
 
+def handle_peer(peer_socket):
+    print("Connected to peer!")
+    while True:
+        try:
+            data = peer_socket.recv(1024)
+            if not data:
+                break
+            print(f"Peer: {data.decode()}")
+        except ConnectionResetError:
+            print("Peer connection closed.")
+            break
+    peer_socket.close()
+
+
 def connect_to_server():
     CONNECTION_MODE = True
     global my_address
@@ -161,7 +178,7 @@ def connect_to_server():
 
     print(f' MY ADDRESS {my_address} --- MY NODE PORT {port}')
     
-    global private_keys, public_keys
+    global private_keys, public_keys, opponent
 
     #! Send private key 0
     client_socket.sendall(serialize_private_key(private_keys[0]))
@@ -232,4 +249,34 @@ def connect_to_server():
             case MessageType.DECLINE.value : 
                 decline()
     
+
+    
+    try:
+        # Attempt to connect to the opponent
+        peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print(opponent)
+        if type(opponent) == str :
+            peer_socket.connect(ast.literal_eval(opponent))
+        else :
+            peer_socket.connect(opponent)
+        print("Connected to opponent!")
+        threading.Thread(target=handle_peer, args=(peer_socket,), daemon=True).start()
+    except ConnectionRefusedError:
+        # If connection fails, act as the receiver
+        print(opponent)
+        listener_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print(opponent)
+        listener_socket.bind(my_address)
+        print(opponent)
+        listener_socket.listen(1)
+        print("Waiting for opponent to connect...")
+        peer_socket, peer_address = listener_socket.accept()
+        print(f"Opponent connected: {peer_address}")
+        threading.Thread(target=handle_peer, args=(peer_socket,), daemon=True).start()
+        peer_socket.send("hiiiiii".encode())
+    
+    while True :
+        message = input()
+        peer_socket.send(message.encode())    
+
 connect_to_server()
