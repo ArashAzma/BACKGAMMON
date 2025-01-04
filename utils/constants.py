@@ -13,6 +13,7 @@ CLIENTS_FILE = 'clients.txt'
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BROWN = (139, 69, 19)
+DARK_BROWN = (139, 69, 19)
 BEIGE = (245, 222, 179)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)

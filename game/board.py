@@ -4,7 +4,8 @@ class Board:
 		for i in range(24):
 			self.myBoard[i] = 0
 		self.myBoard[0] = 2
-		self.myBoard[5] = -5
+		# self.myBoard[5] = -5
+		self.myBoard[5] = -2
 		self.myBoard[7] = -3
 		self.myBoard[11] = 5
 		self.myBoard[12] = -5
@@ -14,7 +15,8 @@ class Board:
 		self.maxRows = 5
 		self.xFree = 0
 		self.oFree = 0
-		self.xJail = 0
+		self.xJail = 3
+		# self.xJail = 0
 		self.oJail = 0
 		self.xHome = 5
 		self.oHome = 5

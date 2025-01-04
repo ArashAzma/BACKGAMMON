@@ -10,7 +10,6 @@ import ast
 import threading
 import pygame
 import sys
-import random
 
 def generate_client_keys():
     private_keys = []
@@ -165,6 +164,17 @@ def requestListen() :
                     print('declined :', dataDecline)
                     state = None    
 
+def draw_jail(screen):
+    black_jail_x = WINDOW_SIZE // 2 
+    for i in range(abs(board.xJail)):
+        y = (i * (PIECE_RADIUS * 2)) + PIECE_RADIUS
+        pygame.draw.circle(screen, GRAY, (black_jail_x, y), PIECE_RADIUS)
+    
+    white_jail_x = WINDOW_SIZE // 2 
+    for i in range(abs(board.oJail)):
+        y = BOARD_SIZE - (i * (PIECE_RADIUS * 2)) - PIECE_RADIUS
+        pygame.draw.circle(screen, WHITE, (white_jail_x, y), PIECE_RADIUS)
+
 def draw_board(screen):
     pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
     
@@ -185,7 +195,9 @@ def draw_board(screen):
             (x + triangle_width, BOARD_SIZE),
             (x + triangle_width/2, BOARD_SIZE - triangle_height)
         ])
-        
+    
+    draw_jail(screen)
+
 def draw_pieces(screen):
     for space, count in board.myBoard.items():
         if count != 0:
@@ -250,6 +262,14 @@ def get_clicked_space(pos):
     x, y = pos
     if y >= BOARD_SIZE:
         return None
+        
+    bar_x = WINDOW_SIZE // 2
+    if abs(x - bar_x) < triangle_width:
+        if my_color == 'WHITE' and board.oJail > 0:
+            return 'WHITE_JAIL'
+        elif my_color == 'BLACK' and board.xJail > 0:
+            return 'BLACK_JAIL'
+            
     if (x < WINDOW_SIZE /2):
         x += triangle_width
         
@@ -268,20 +288,48 @@ def handle_click(opp_socket, pos):
         return
         
     space = get_clicked_space(pos)
+    print('space', space)
     if space is not None:
-        if selected_piece is None:
-            selected_piece = space
-        else:
-            steps = abs(space - selected_piece)
-            if steps in current_roll:
-                success, message = board.makeMove(selected_piece, my_color, steps)
-                if success:
-                    moves_left -= steps
-                    current_roll.remove(steps)
-                    if moves_left == 0:
-                        end_turn(opp_socket)
+        if space in ['WHITE_JAIL', 'BLACK_JAIL']:
+            if my_color == 'WHITE' and board.oJail > 0:
+                for roll in current_roll:
+                    target_space = roll - 1  
+                    success, message = board.makeMove(target_space, my_color, 0)
+                    if success:
+                        current_roll.remove(roll)
+                        moves_left -= roll
+                        if moves_left == 0:
+                            end_turn(opp_socket)
+                        break
                 messages.append(f"System: {message}")
-            selected_piece = None
+            elif my_color == 'BLACK' and board.xJail > 0:
+                for roll in current_roll:
+                    target_space = 24 - roll  
+                    success, message = board.makeMove(target_space, my_color, 0)
+                    if success:
+                        current_roll.remove(roll)
+                        moves_left -= roll
+                        if moves_left == 0:
+                            end_turn(opp_socket)
+                        break
+                messages.append(f"System: {message}")
+        elif ((my_color == 'WHITE' and board.oJail == 0) or 
+              (my_color == 'BLACK' and board.xJail == 0)):
+            if selected_piece is None:
+                selected_piece = space
+            else:
+                steps = abs(space - selected_piece)
+                if steps in current_roll:
+                    success, message = board.makeMove(selected_piece, my_color, steps)
+                    if success:
+                        moves_left -= steps
+                        current_roll.remove(steps)
+                        if moves_left == 0:
+                            end_turn(opp_socket)
+                    messages.append(f"System: {message}")
+                selected_piece = None
+        else:
+            messages.append("System: You must free your pieces from jail first!")
 
 def roll_dice():
     global current_roll, moves_left
@@ -293,6 +341,78 @@ def roll_dice():
     message = pickle.loads(data)
     current_roll = message
     moves_left = sum(current_roll)
+    print('moves_left', moves_left)
+
+def handle_jail_move(pos, opp_socket):
+    global current_roll, moves_left, board
+    
+    space = get_clicked_space(pos)
+    print('space', space)
+    if space is None:
+        return
+        
+    if my_color == 'WHITE':
+        valid_spaces = [i for i in range(0, 6)]
+        roll_values = current_roll.copy()
+        
+        for roll in roll_values:
+            target_space = roll - 1
+            if target_space in valid_spaces:
+                success, message = board.makeMove(target_space, my_color, 0)
+                if success:
+                    current_roll.remove(roll)
+                    moves_left -= roll
+                    messages.append(f"System: {message}")
+                    if moves_left == 0:
+                        end_turn(opp_socket)
+                    break
+        # end_turn(opp_socket)
+                
+    else:  # BLACK
+        valid_spaces = [i for i in range(18, 24)]
+        roll_values = current_roll.copy()
+        for roll in roll_values:
+            print('roll', roll)
+            target_space = 24 - roll
+            print('target_space', target_space)
+            if target_space in valid_spaces:
+                success, message = board.makeMove(target_space, my_color, 0)
+                if success:
+                    current_roll.remove(roll)
+                    moves_left -= roll
+                    messages.append(f"System: {message}")
+                    if moves_left == 0:
+                        end_turn(opp_socket)
+                    break
+        # end_turn(opp_socket)
+
+def handle_normal_move(pos, opp_socket):
+    global selected_piece, moves_left, current_roll
+    
+    space = get_clicked_space(pos)
+    if space is None:
+        return
+        
+    if selected_piece is None:
+        if (my_color == 'WHITE' and board.myBoard[space] <= 0) or \
+           (my_color == 'BLACK' and board.myBoard[space] >= 0):
+            messages.append("System: Not your piece!")
+            return
+        selected_piece = space
+        messages.append(f"System: Selected piece at position {space + 1}")
+    else:
+        steps = abs(space - selected_piece)
+        if steps in current_roll:
+            success, message = board.makeMove(selected_piece, my_color, steps)
+            if success:
+                print('moves_left', moves_left)
+                print('steps', steps)
+                moves_left -= steps
+                current_roll.remove(steps)
+                messages.append(f"System: {message}")
+                if moves_left == 0:
+                    end_turn(opp_socket)
+        selected_piece = None
 
 def end_turn(opp_socket):
     global is_my_turn, current_roll, moves_left
@@ -305,12 +425,16 @@ def send_game_state(opp_socket):
     if opponent:
         game_state = {
             'board': board.myBoard,
+            'xJail': board.xJail,
+            'oJail': board.oJail,
+            'xFree': board.xFree,
+            'oFree': board.oFree,
             'turn_end': True
         }
         opp_socket.sendall(pickle.dumps(game_state))
 
 def game_loop(opp_socket, screen, font):
-    global input_text, messages, is_my_turn, my_color
+    global input_text, messages, is_my_turn, my_color, board
 
     clock = pygame.time.Clock()
     
@@ -321,7 +445,6 @@ def game_loop(opp_socket, screen, font):
     else:
         is_my_turn = False
         my_color = 'BLACK'
-        
 
     while True:
         screen.fill(WHITE)
@@ -331,7 +454,21 @@ def game_loop(opp_socket, screen, font):
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                handle_click(opp_socket, event.pos)
+                if event.pos[1] >= BOARD_SIZE:
+                    continue
+                    
+                if not is_my_turn:
+                    messages.append("System: Not your turn!")
+                    continue
+                    
+                if ((my_color == 'WHITE' and board.oJail > 0) or 
+                    (my_color == 'BLACK' and board.xJail > 0)):
+                    print('IS IN JAIL', my_color)
+                    handle_jail_move(event.pos, opp_socket)
+                else:
+                    print('IS IN NORMAL', my_color)
+                    handle_normal_move(event.pos, opp_socket)
+                    
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if input_text.lower() == "q":
@@ -351,7 +488,7 @@ def game_loop(opp_socket, screen, font):
         draw_chat(screen, font)
 
         pygame.display.flip()
-        clock.tick(30) 
+        clock.tick(30)
 
 def handle_network_message(data):
     global board, is_my_turn
@@ -360,14 +497,16 @@ def handle_network_message(data):
         if isinstance(message, dict):
             if 'board' in message:
                 board.myBoard = message['board']
+                board.xJail = message['xJail']
+                board.oJail = message['oJail']
+                board.xFree = message['xFree']
+                board.oFree = message['oFree']
                 if message.get('turn_end', False):
                     is_my_turn = True
                     roll_dice()
         elif isinstance(message, str):
             if message.startswith('CHAT:'):
-                print(f"Opponent: {message[5:]}")
                 messages.append(f"Opponent: {message[5:]}")
-                
     except Exception as e:
         messages.append(f"Error: {str(e)}")
 
