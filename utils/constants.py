@@ -35,3 +35,4 @@ class MessageType(Enum):
     REQUESTS = "requests"
     ANYACCEPT = "anyAccept"
     ANYACCEPTRES = "anyAcceptres"
+    TESTING = "testing"

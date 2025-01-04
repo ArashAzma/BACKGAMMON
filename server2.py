@@ -205,6 +205,8 @@ def handle_client(conn, addr):
 
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_declines)
                 conn.sendall(response)           
+            elif protocol == MessageType.TESTING.value:
+                conn.sendall("i can talk to you".encode())
 
     except Exception as e:
         print(f"Error handling client: {e}")

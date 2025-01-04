@@ -274,6 +274,14 @@ def connect_to_server():
     
     while True :
         message = input()
-        peer_socket.send(message.encode())    
+        peer_socket.send(message.encode())
+
+        message = f"hi its me"
+        choose_opoonent_msg = create_message(MessageType.TESTING.value, message)
+        client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+        data = client_socket.recv(BUFFER_SIZE)
+        data = decrypt_server_message(data, private_keys)
+        print(data)
+        
 
 connect_to_server()
