@@ -30,6 +30,7 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
+    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
     client_conn, client_addr = relay_socket.accept()
     
     while True:
@@ -196,7 +197,11 @@ def handle_client(conn, addr):
             elif protocol == MessageType.ANYACCEPT.value:
                 serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
                 serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
-                
+                try :
+                    accepts.remove(entry for entry in accepts if entry.split(";")[1] == message)
+                    declines.remove(entry for entry in declines if entry.split(";")[1] == message)
+                except Exception:
+                    pass
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_accepts)
                 conn.sendall(response)
 
