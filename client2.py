@@ -1,15 +1,16 @@
 import socket
 import pickle
 import time
-import base64
 from utils.key2 import * 
 from utils.constants import * 
 from utils.helper import * 
-import rsa
-from base64 import b64encode, b64decode
-import zlib
+from utils.constants import * 
+from game.board import *
 import ast
 import threading
+import pygame
+import sys
+import random
 
 def generate_client_keys():
     private_keys = []
@@ -28,7 +29,18 @@ opponent = None
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 private_keys, public_keys = generate_client_keys()
 my_address = ""
+
 messages = []
+input_text = ""
+
+board = Board()
+is_my_turn = False
+current_roll = None
+moves_left = 0
+selected_piece = None
+
+triangle_width = WINDOW_SIZE // 13
+triangle_height = (BOARD_SIZE - 40) // 2
 
 def find_my_port():
     my_start_node = ONION_PORT
@@ -142,7 +154,7 @@ def requestListen() :
                 if dataAccept != [] :
                     print('accepted :', dataAccept[0])
                     opponent = dataAccept[0]
-                    state = None    #need to be changed!!!
+                    state = None    
                     alone = False
             
             time.sleep(1)
@@ -153,19 +165,204 @@ def requestListen() :
                 dataDecline = pickle.loads(dataDecline)
                 if dataDecline != [] :
                     print('declined :', dataDecline)
-                    state = None    #need to be changed!!!
+                    state = None    
+
+def draw_board(screen):
+    pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
+    
+    for i in range(13):
+        if(i==6): 
+            continue
+        x = (i * triangle_width)
+        color = BEIGE if i % 2 == 0 else BLACK
+        pygame.draw.polygon(screen, color, [
+            (x, 0),
+            (x + triangle_width, 0),
+            (x + triangle_width/2, triangle_height)
+        ])
+        
+        color = BEIGE if i % 2 == 1 else BLACK
+        pygame.draw.polygon(screen, color, [
+            (x, BOARD_SIZE),
+            (x + triangle_width, BOARD_SIZE),
+            (x + triangle_width/2, BOARD_SIZE - triangle_height)
+        ])
+        
+def draw_pieces(screen):
+    for space, count in board.myBoard.items():
+        if count != 0:
+            piece_radius = PIECE_RADIUS
+            if space > 11:
+                x = ((space - 11) * triangle_width) - triangle_width / 2
+            else:
+                x = ((13 - space) * triangle_width) - triangle_width / 2
+            if(space >= 6 and space<=11):
+                x -= triangle_width
+            if(space >= 18):
+                x += triangle_width
+            color = WHITE if count > 0 else GRAY
+            abs_count = abs(count)
+            
+            for i in range(abs_count):
+                if space > 11:  
+                    y = (i * (piece_radius * 2)) + piece_radius
+                else:
+                    y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
+                
+                pygame.draw.circle(screen, color, (x, y), piece_radius)
+
+def draw_dice(screen, font):
+    if current_roll:
+        dice_size = 40
+        x_offset = WINDOW_SIZE - 100
+        y_offset = BOARD_SIZE // 2
+        
+        for i, roll in enumerate(current_roll):
+            pygame.draw.rect(screen, WHITE, (x_offset, y_offset + (i * 50), dice_size, dice_size))
+            text = font.render(str(roll), True, BLACK)
+            screen.blit(text, (x_offset + 15, y_offset + (i * 50) + 10))
+
+def draw_chat(screen, font):
+    chat_surface = pygame.Surface((WINDOW_SIZE, CHAT_HEIGHT))
+    chat_surface.fill(WHITE)
+    
+    y_offset = 10
+    for message in messages[-5:]:
+        if message.startswith("You:"):
+            message = message[4:]
+            x_offset = WINDOW_SIZE / 3 * 2
+        else:
+            message = message[9:]
+            x_offset = 10
+            
+        text_surface = font.render(message, True, BLACK)
+        chat_surface.blit(text_surface, (x_offset, y_offset))
+        y_offset += FONT_SIZE + 5
+
+    input_box = pygame.Rect(10, CHAT_HEIGHT - 40, WINDOW_SIZE - 20, 30)
+    pygame.draw.rect(chat_surface, WHITE, input_box)
+    pygame.draw.rect(chat_surface, BLACK, input_box, 2)
+    
+    input_surface = font.render(input_text, True, BLACK)
+    chat_surface.blit(input_surface, (15, CHAT_HEIGHT - 35))
+    
+    screen.blit(chat_surface, (0, BOARD_SIZE))
+
+def get_clicked_space(pos):
+    x, y = pos
+    if y >= BOARD_SIZE:
+        return None
+    if (x < WINDOW_SIZE /2):
+        x += triangle_width
+        
+    space = 12 - (x) // triangle_width
+    if space < 0 or space >= 24:
+        return None
+    
+    if y < BOARD_SIZE // 2:
+        space = 23 - space
+        
+    return space
+
+def handle_click(opp_socket, pos):
+    global selected_piece, moves_left, current_roll
+    if not is_my_turn or not current_roll:
+        return
+        
+    space = get_clicked_space(pos)
+    if space is not None:
+        if selected_piece is None:
+            selected_piece = space
+        else:
+            steps = abs(space - selected_piece)
+            if steps in current_roll:
+                success, message = board.makeMove(selected_piece, my_color, steps)
+                if success:
+                    moves_left -= steps
+                    current_roll.remove(steps)
+                    if moves_left == 0:
+                        end_turn(opp_socket)
+                messages.append(f"System: {message}")
+            selected_piece = None
+
+def roll_dice():
+    global current_roll, moves_left
+    roll1 = random.randint(1, 6)
+    roll2 = random.randint(1, 6)
+    current_roll = [roll1, roll2]
+    if roll1 == roll2:
+        current_roll *= 2
+    moves_left = sum(current_roll)
+
+def end_turn(opp_socket):
+    global is_my_turn, current_roll, moves_left
+    is_my_turn = False
+    current_roll = None
+    moves_left = 0
+    send_game_state(opp_socket)
+
+def send_game_state(opp_socket):
+    if opponent:
+        game_state = {
+            'board': board.myBoard,
+            'turn_end': True
+        }
+        opp_socket.sendall(pickle.dumps(game_state))
+
+def game_loop(opp_socket, screen, font):
+    global input_text, messages, is_my_turn, my_color
+
+    clock = pygame.time.Clock()
+    
+    if my_address[1] > opponent[1]:
+        is_my_turn = True
+        my_color = 'WHITE'
+        roll_dice()
+    else:
+        is_my_turn = False
+        my_color = 'BLACK'
+        
+
+    while True:
+        screen.fill(WHITE)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                handle_click(opp_socket, event.pos)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if input_text.lower() == "q":
+                        pygame.quit()
+                        sys.exit()
+                    opp_socket.send(pickle.dumps(f"CHAT:{input_text}"))
+                    messages.append(f"You: {input_text}")
+                    input_text = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+        draw_board(screen)
+        draw_pieces(screen)
+        draw_dice(screen, font)
+        draw_chat(screen, font)
+
+        pygame.display.flip()
+        clock.tick(30) 
 
 def handle_network_message(data):
     global board, is_my_turn
     try:
         message = pickle.loads(data)
         if isinstance(message, dict):
-            pass
-            # if 'board' in message:
-            #     board.myBoard = message['board']
-            #     if message.get('turn_end', False):
-            #         is_my_turn = True
-            #         roll_dice()
+            if 'board' in message:
+                board.myBoard = message['board']
+                if message.get('turn_end', False):
+                    is_my_turn = True
+                    roll_dice()
         elif isinstance(message, str):
             if message.startswith('CHAT:'):
                 print(f"Opponent: {message[5:]}")
@@ -281,9 +478,8 @@ def connect_to_server():
     try:
         opp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if type(opponent) == str :
-            opp_socket.connect(ast.literal_eval(opponent))
-        else :
-            opp_socket.connect(opponent)
+            opponent = ast.literal_eval(opponent)
+        opp_socket.connect(opponent)
         threading.Thread(target=get_opp_message, args=(opp_socket,), daemon=True).start()
     except:
         listener_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -294,6 +490,16 @@ def connect_to_server():
         print(f"Opponent connected: {opp_address}")
         threading.Thread(target=get_opp_message, args=(opp_socket,), daemon=True).start()
     
-    send_message(opp_socket)
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    font = pygame.font.Font(None, FONT_SIZE)
+    title = "BLACK"
+    if my_address[1] > opponent[1]:
+        title = "WHITE"
+        
+    pygame.display.set_caption(f"Backgammon {title}")
+    game_loop(opp_socket, screen, font)
+
+    # send_message(opp_socket)
     
 connect_to_server()
