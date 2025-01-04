@@ -263,11 +263,8 @@ def connect_to_server():
         threading.Thread(target=handle_peer, args=(peer_socket,), daemon=True).start()
     except ConnectionRefusedError:
         # If connection fails, act as the receiver
-        print(opponent)
         listener_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print(opponent)
         listener_socket.bind(my_address)
-        print(opponent)
         listener_socket.listen(1)
         print("Waiting for opponent to connect...")
         peer_socket, peer_address = listener_socket.accept()
