@@ -28,6 +28,7 @@ opponent = None
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 private_keys, public_keys = generate_client_keys()
 my_address = ""
+messages = []
 
 def find_my_port():
     my_start_node = ONION_PORT
@@ -98,7 +99,6 @@ def requestListen() :
     requests = []
     onlines = []
     global client_socket, requested, private_keys, alone, state
-    print("im listening")
     while alone:
         message = f"{my_address}"
         choose_opoonent_msg = create_message(MessageType.ANYREQUEST.value, message)
@@ -116,7 +116,7 @@ def requestListen() :
         else:
             print('There was an Error with Clients')
         
-        time.sleep(0.2)
+        time.sleep(1)
 
         data = client_socket.recv(BUFFER_SIZE)
         data = decrypt_server_message(data, private_keys)
@@ -124,8 +124,8 @@ def requestListen() :
         if protocol == MessageType.REQUESTS.value:
             clients = pickle.loads(data)
             if requests != clients :
-                print('requests :', clients)
                 requests = clients
+                show_requests(requests, my_address)
         global opponent
         if state == "waiting" :        
             message = f"{my_address}"
@@ -145,7 +145,7 @@ def requestListen() :
                     state = None    #need to be changed!!!
                     alone = False
             
-            time.sleep(0.1)
+            time.sleep(1)
             
             dataDecline = decrypt_server_message(dataDecline, private_keys)
             protocol, dataDecline = parse_client_message(dataDecline)
@@ -155,22 +155,51 @@ def requestListen() :
                     print('declined :', dataDecline)
                     state = None    #need to be changed!!!
 
-def handle_peer(peer_socket):
-    print("Connected to peer!")
+def handle_network_message(data):
+    global board, is_my_turn
+    try:
+        message = pickle.loads(data)
+        if isinstance(message, dict):
+            pass
+            # if 'board' in message:
+            #     board.myBoard = message['board']
+            #     if message.get('turn_end', False):
+            #         is_my_turn = True
+            #         roll_dice()
+        elif isinstance(message, str):
+            if message.startswith('CHAT:'):
+                print(f"Opponent: {message[5:]}")
+                messages.append(f"Opponent: {message[5:]}")
+                
+    except Exception as e:
+        messages.append(f"Error: {str(e)}")
+
+def get_opp_message(opp_socket):
+    print("Connected to opp!")
     while True:
         try:
-            data = peer_socket.recv(1024)
+            data = opp_socket.recv(BUFFER_SIZE)
             if not data:
                 break
-            print(f"Peer: {data.decode()}")
+            handle_network_message(data)
         except ConnectionResetError:
-            print("Peer connection closed.")
+            print("Opp connection closed.")
             break
-    peer_socket.close()
+    opp_socket.close()
 
+def send_message(opp_socket):
+    while True :
+        message = input("> ")
+        opp_socket.send(pickle.dumps(f"CHAT:{message}"))
+            
+        # choose_opoonent_msg = create_message(MessageType.TESTING.value, message)
+        # client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+        # data = client_socket.recv(BUFFER_SIZE)
+        # data = decrypt_server_message(data, private_keys)
+        # print(data)
+        
 
 def connect_to_server():
-    CONNECTION_MODE = True
     global my_address
     port = find_my_port()
     client_socket.connect((SERVER, port))
@@ -249,39 +278,22 @@ def connect_to_server():
             case MessageType.DECLINE.value : 
                 decline()
     
-
-    
     try:
-        # Attempt to connect to the opponent
-        peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print(opponent)
+        opp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if type(opponent) == str :
-            peer_socket.connect(ast.literal_eval(opponent))
+            opp_socket.connect(ast.literal_eval(opponent))
         else :
-            peer_socket.connect(opponent)
-        print("Connected to opponent!")
-        threading.Thread(target=handle_peer, args=(peer_socket,), daemon=True).start()
-    except ConnectionRefusedError:
-        # If connection fails, act as the receiver
+            opp_socket.connect(opponent)
+        threading.Thread(target=get_opp_message, args=(opp_socket,), daemon=True).start()
+    except:
         listener_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         listener_socket.bind(my_address)
         listener_socket.listen(1)
         print("Waiting for opponent to connect...")
-        peer_socket, peer_address = listener_socket.accept()
-        print(f"Opponent connected: {peer_address}")
-        threading.Thread(target=handle_peer, args=(peer_socket,), daemon=True).start()
-        peer_socket.send("hiiiiii".encode())
+        opp_socket, opp_address = listener_socket.accept()
+        print(f"Opponent connected: {opp_address}")
+        threading.Thread(target=get_opp_message, args=(opp_socket,), daemon=True).start()
     
-    while True :
-        message = input()
-        peer_socket.send(message.encode())
-
-        message = f"hi its me"
-        choose_opoonent_msg = create_message(MessageType.TESTING.value, message)
-        client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
-        data = client_socket.recv(BUFFER_SIZE)
-        data = decrypt_server_message(data, private_keys)
-        print(data)
-        
-
+    send_message(opp_socket)
+    
 connect_to_server()

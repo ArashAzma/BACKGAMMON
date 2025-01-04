@@ -30,7 +30,6 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
-    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
     client_conn, client_addr = relay_socket.accept()
     
     while True:
