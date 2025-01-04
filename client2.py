@@ -76,7 +76,6 @@ def get_ans(ans) :
         print("not accepted")
     state = None
 
-
 def decline():
     print("enter the port you wanna decline :")
     port = input()
@@ -94,7 +93,6 @@ def accept() :
     choose_opoonent_msg = create_message(MessageType.ACCEPT.value, message)
     client_socket.send(encrypt_server_message(choose_opoonent_msg, public_keys))
     alone = False
-
 
 def send_request() :
     global opponent_port, state, my_address
@@ -287,11 +285,13 @@ def handle_click(opp_socket, pos):
 
 def roll_dice():
     global current_roll, moves_left
-    roll1 = random.randint(1, 6)
-    roll2 = random.randint(1, 6)
-    current_roll = [roll1, roll2]
-    if roll1 == roll2:
-        current_roll *= 2
+    choose_opoonent_msg = create_message(MessageType.ROLL_DICE.value, '')
+    client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
+    data = client_socket.recv(BUFFER_SIZE)
+    data = decrypt_server_message(data, private_keys)
+    protocol, data = parse_client_message(data)
+    message = pickle.loads(data)
+    current_roll = message
     moves_left = sum(current_roll)
 
 def end_turn(opp_socket):
@@ -389,13 +389,6 @@ def send_message(opp_socket):
         message = input("> ")
         opp_socket.send(pickle.dumps(f"CHAT:{message}"))
             
-        # choose_opoonent_msg = create_message(MessageType.TESTING.value, message)
-        # client_socket.sendall(encrypt_server_message(choose_opoonent_msg, public_keys))
-        # data = client_socket.recv(BUFFER_SIZE)
-        # data = decrypt_server_message(data, private_keys)
-        # print(data)
-        
-
 def connect_to_server():
     global my_address
     port = find_my_port()

@@ -2,18 +2,25 @@ import socket
 import threading
 import pickle
 import os
-import base64
 from utils.key2 import *
 from utils.constants import *
 from utils.helper import *
-import rsa
 import time
-from base64 import b64encode, b64decode
+import random
 
 clients = []
 requests_list = []
 declines = []
 accepts = []
+
+def roll_dice():
+    roll1 = random.randint(1, 6)
+    roll2 = random.randint(1, 6)
+    current_roll = [roll1, roll2]
+    if roll1 == roll2:
+        current_roll *= 2
+        
+    return current_roll
     
 def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     relay_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -209,6 +216,11 @@ def handle_client(conn, addr):
 
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_declines)
                 conn.sendall(response)           
+            elif protocol == MessageType.ROLL_DICE.value:
+                rolls = roll_dice()
+                serialized_rolls = pickle.dumps(rolls)
+                response = create_client_message(MessageType.ROLL_DICE.value, serialized_rolls)
+                conn.sendall(response)
             elif protocol == MessageType.TESTING.value:
                 conn.sendall("i can talk to you".encode())
 

@@ -25,8 +25,8 @@ PIECE_RADIUS = 20
 FONT_SIZE = 15
 class MessageType(Enum):
     CONNECT = "connect"
-    REQUEST = "request"
-    ACCEPT = "accept"
+    REQUEST = "re"
+    ACCEPT = "ac"
     DECLINE = "decline"
     TOSERVER = "toServer"
     TOCLIENT = "toClient"
@@ -36,3 +36,4 @@ class MessageType(Enum):
     ANYACCEPT = "anyAccept"
     ANYACCEPTRES = "anyAcceptres"
     TESTING = "testing"
+    ROLL_DICE = 'roll'
