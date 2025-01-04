@@ -288,7 +288,6 @@ def handle_click(opp_socket, pos):
         return
         
     space = get_clicked_space(pos)
-    print('space', space)
     if space is not None:
         if space in ['WHITE_JAIL', 'BLACK_JAIL']:
             if my_color == 'WHITE' and board.oJail > 0:
@@ -432,10 +431,37 @@ def send_game_state(opp_socket):
             'turn_end': True
         }
         opp_socket.sendall(pickle.dumps(game_state))
+        if board.xFree == 15 or board.oFree == 15:
+            send_game_state_to_server()
+
+def send_game_state_to_server():
+    global private_keys, game
+
+    game_state = {
+        "board": board.myBoard,
+        "xJail": board.xJail,
+        "oJail": board.oJail,
+        "xFree": board.xFree,
+        "oFree": board.oFree,
+        "turn_end": True
+    }
+    message = create_message(MessageType.FINISHED_GAME.value, game_state)
+    client_socket.sendall(encrypt_server_message(message, public_keys))
+    data = client_socket.recvfrom(BUFFER_SIZE)
+    decrypted = decrypt_server_message(data[0], private_keys)
+    _, response = parse_message(decrypted)
+    if response == "xWins":
+        game = False
+        opp_socket.send(pickle.dumps(f"END:xWins"))
+    elif response == "oWins":
+        game = False
+        opp_socket.send(pickle.dumps(f"END:oWins"))
+    else:
+        messages.append(f"SERVER: THE GAME CONTINUES")
 
 def game_loop(opp_socket, screen, font):
-    global input_text, messages, is_my_turn, my_color, board
-
+    global input_text, messages, is_my_turn, my_color, board, game
+    game = True
     clock = pygame.time.Clock()
     
     if my_address[1] > opponent[1]:
@@ -446,7 +472,7 @@ def game_loop(opp_socket, screen, font):
         is_my_turn = False
         my_color = 'BLACK'
 
-    while True:
+    while game:
         screen.fill(WHITE)
 
         for event in pygame.event.get():
@@ -463,10 +489,8 @@ def game_loop(opp_socket, screen, font):
                     
                 if ((my_color == 'WHITE' and board.oJail > 0) or 
                     (my_color == 'BLACK' and board.xJail > 0)):
-                    print('IS IN JAIL', my_color)
                     handle_jail_move(event.pos, opp_socket)
                 else:
-                    print('IS IN NORMAL', my_color)
                     handle_normal_move(event.pos, opp_socket)
                     
             elif event.type == pygame.KEYDOWN:
@@ -491,7 +515,7 @@ def game_loop(opp_socket, screen, font):
         clock.tick(30)
 
 def handle_network_message(data):
-    global board, is_my_turn
+    global board, is_my_turn, game
     try:
         message = pickle.loads(data)
         if isinstance(message, dict):
@@ -507,6 +531,9 @@ def handle_network_message(data):
         elif isinstance(message, str):
             if message.startswith('CHAT:'):
                 messages.append(f"Opponent: {message[5:]}")
+            elif message.startswith('END:'):
+                print(message)
+                game=False
     except Exception as e:
         messages.append(f"Error: {str(e)}")
 

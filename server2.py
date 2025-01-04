@@ -7,6 +7,7 @@ from utils.constants import *
 from utils.helper import *
 import time
 import random
+import json
 
 clients = []
 requests_list = []
@@ -221,6 +222,17 @@ def handle_client(conn, addr):
                 serialized_rolls = pickle.dumps(rolls)
                 response = create_client_message(MessageType.ROLL_DICE.value, serialized_rolls)
                 conn.sendall(response)
+            elif protocol == MessageType.FINISHED_GAME.value:
+                message = eval(message)
+                if message['xFree']== 15:
+                    response = create_client_message(MessageType.ROLL_DICE.value, "xWins".encode())
+                elif message['oFree'] == 15:
+                    response = create_client_message(MessageType.ROLL_DICE.value, "oWins".encode())
+                else:
+                    response = create_client_message(MessageType.ROLL_DICE.value, "continue".encode())
+                    
+                conn.sendall(response)
+                
             elif protocol == MessageType.TESTING.value:
                 conn.sendall("i can talk to you".encode())
 

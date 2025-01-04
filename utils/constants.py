@@ -38,3 +38,4 @@ class MessageType(Enum):
     ANYACCEPTRES = "anyAcceptres"
     TESTING = "testing"
     ROLL_DICE = 'roll'
+    FINISHED_GAME = 'finishGame'
