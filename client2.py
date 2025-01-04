@@ -388,20 +388,18 @@ def send_message(opp_socket):
     while True :
         message = input("> ")
         opp_socket.send(pickle.dumps(f"CHAT:{message}"))
-            
-def connect_to_server():
-    global my_address
+        
+def handshake():
+    global my_address, private_keys, public_keys, opponent, opp_socket
+
     port = find_my_port()
     client_socket.connect((SERVER, port))
     my_address = client_socket.getsockname()
 
     print(f' MY ADDRESS {my_address} --- MY NODE PORT {port}')
     
-    global private_keys, public_keys, opponent
-
     #! Send private key 0
     client_socket.sendall(serialize_private_key(private_keys[0]))
-    # print('sent key 0')
     
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
@@ -414,7 +412,6 @@ def connect_to_server():
     for chunk in encrypted_chunks:
         chunk_size = len(chunk).to_bytes(4, byteorder='big')
         client_socket.sendall(chunk_size + chunk)
-    # print('sent key 1')
     
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
@@ -434,7 +431,6 @@ def connect_to_server():
     for chunk in final_chunks:
         chunk_size = len(chunk).to_bytes(4, byteorder='big')
         client_socket.sendall(chunk_size + chunk)
-    # print('sent key 2')
 
     data = client_socket.recv(BUFFER_SIZE)
     protocol, message = parse_message(data)
@@ -443,21 +439,21 @@ def connect_to_server():
     #! Send public keys
     for i, pk in enumerate(public_keys):
         client_socket.sendall(serialize_public_key(pk))
-        # print(f'sent public key {i}')
         data = client_socket.recv(BUFFER_SIZE)
         protocol, message = parse_message(data)
         print(f'PUBLIC KEY {i} was a SUCCESS:', message)
-    
-
+        
+    return True
+        
+def connect_to_server():
+    global my_address, opp_socket, alone, opponent
     message = create_message("connect", my_address)
     client_socket.sendall(encrypt_server_message(message, public_keys))
-    print('Sent connect')
     time.sleep(0.1)
     requestListener = threading.Thread(target=requestListen)
     requestListener.daemon = True
     requestListener.start()
     
-    global alone 
     while (alone) :
         word = input()
         match word :
@@ -482,7 +478,11 @@ def connect_to_server():
         opp_socket, opp_address = listener_socket.accept()
         print(f"Opponent connected: {opp_address}")
         threading.Thread(target=get_opp_message, args=(opp_socket,), daemon=True).start()
+        
+    return True
     
+def start_game():
+    global my_address, opp_socket, alone, opponent
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
     font = pygame.font.Font(None, FONT_SIZE)
@@ -493,6 +493,9 @@ def connect_to_server():
     pygame.display.set_caption(f"Backgammon {title}")
     game_loop(opp_socket, screen, font)
 
-    # send_message(opp_socket)
+def start_client():
+    if handshake():
+        if connect_to_server():
+            start_game()
     
-connect_to_server()
+start_client()
