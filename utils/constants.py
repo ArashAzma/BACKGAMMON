@@ -25,8 +25,8 @@ PIECE_RADIUS = 20
 FONT_SIZE = 15
 class MessageType(Enum):
     CONNECT = "connect"
-    REQUEST = "request"
-    ACCEPT = "accept"
+    REQUEST = "r"
+    ACCEPT = "a"
     DECLINE = "decline"
     TOSERVER = "toServer"
     TOCLIENT = "toClient"

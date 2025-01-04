@@ -20,8 +20,6 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     relay_socket.bind(relay_address)
     relay_socket.listen(5)
 
-    # print(f"Relay node {index} started at {relay_address} forwarding to {next_address}")
-
     CONNECTION_MODE = True
     PUBLIC_MODE = False
     
@@ -30,7 +28,6 @@ def relay_node(relay_address, next_address, index, buffer_size=BUFFER_SIZE):
     times = 0
     next_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_node_socket.connect(next_address)    
-    pre_node_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    
     client_conn, client_addr = relay_socket.accept()
     
     while True:
@@ -175,8 +172,6 @@ def handle_client(conn, addr):
                     message = create_message(MessageType.ACCEPT.value, serialized_clients.hex())
                     clients.append(address)
             elif protocol == MessageType.ANYREQUEST.value:
-                # client_address, opponent_address = message.split(b";", 1)
-                
                 serialized_requests = pickle.dumps([entry for entry in requests_list if entry.split(";")[1] == message])
                 serialized_clients = pickle.dumps(clients)
 
@@ -195,7 +190,7 @@ def handle_client(conn, addr):
             elif protocol == MessageType.DECLINE.value:
                 declines.append(message)
             elif protocol == MessageType.ANYACCEPT.value:
-                serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
+                serialized_accepts = pickle.dumps([entry.split(";")[2] for entry in accepts if entry.split(";")[1] == message])
                 serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
                 
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_accepts)

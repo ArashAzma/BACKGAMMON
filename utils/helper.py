@@ -34,3 +34,21 @@ def show_online_users(clients, my_address):
             print('\t',client[1])
     else:
         print('Nobody is online')
+        
+def show_requests(clients, my_address):
+    result = []
+    for item in clients:
+        parts = item.split(';')
+        for part in parts:
+            part = part.strip()
+            if part:  
+                result.append(eval(part))
+    
+    users = result.copy()
+    users.remove(my_address)
+    print('\nRequests :')
+    if(len(users) > 0):
+        for client in users:
+            print('\t',client[1])
+    else:
+        print('You have no requests!')
