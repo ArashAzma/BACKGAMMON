@@ -22,6 +22,7 @@ def generate_client_keys():
         
     return private_keys, public_keys
 
+again = False
 state = None
 alone = True
 opponent = None
@@ -540,12 +541,26 @@ def handle_network_message(data):
 
 def get_opp_message(opp_socket):
     print("Connected to opp!")
+    global state, again
     while True:
         try:
             data = opp_socket.recv(BUFFER_SIZE)
             if not data:
                 break
-            handle_network_message(data)
+            if data.decode() == "play"and state == "wait":
+                again = True
+                state = None
+            elif data.decode() == "play" :
+                print("your opponent wants to play again")
+                print("enter play if u want too")
+                again = True
+                state = "wait"
+            elif data.decode() == "noPlay" :
+                print("your opponent left the game")
+                print("enter anything to leave the game")
+                state = None 
+            else :
+                handle_network_message(data)
         except ConnectionResetError:
             print("Opp connection closed.")
             break
@@ -659,17 +674,35 @@ def start_game():
         
     pygame.display.set_caption(f"Backgammon {title}")
     game_loop(opp_socket, screen, font)
+    print("you finished the game")
+    print("play again with this client ?(enter play)")
+    ans = input()
+    global again, state
+    if(ans == "play" and state == "wait"):
+        state = "None"
+    elif ans == "play" :
+        state = "wait"    
+    opp_socket.send(ans.encode())
+    print("i sent that")
+    while state == "wait" :
+        time.sleep(0.1)
+        
 
 def start_client():
-    global opponent, alone, requests, onlines
+    global opponent, alone, again, requests, onlines
     if handshake():
         while(True) :
-            opponent = None
-            alone = True
-            onlines = []
-            requests = []
-            print("you finished the game")
-            if connect_to_server():
+            if not again :
+                opponent = None
+                alone = True
+                onlines = []
+                requests = []
+                if connect_to_server():
+                    again = False
+                    start_game()
+            else :
+                print("now u can play")
+                again = False
                 start_game()
     
 start_client()
