@@ -462,8 +462,18 @@ def send_game_state_to_server():
         messages.append(f"SERVER: THE GAME CONTINUES")
 
 def game_loop(opp_socket, screen, font):
-    global input_text, messages, is_my_turn, my_color, board, game
-    game = False
+    global input_text, messages, is_my_turn, my_color, board, game, current_roll, moves_left, selected_piece
+    
+    messages = []
+    input_text = ""
+
+    board = Board()
+    is_my_turn = False
+    current_roll = None
+    moves_left = 0
+    selected_piece = None
+    
+    game = True
     clock = pygame.time.Clock()
     
     if my_address[1] > opponent[1]:
@@ -515,6 +525,7 @@ def game_loop(opp_socket, screen, font):
 
         pygame.display.flip()
         clock.tick(30)
+    pygame.quit()
 
 def handle_network_message(data):
     global board, is_my_turn, game
