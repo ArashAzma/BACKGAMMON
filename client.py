@@ -13,6 +13,10 @@ import sys
 
 dice_images = [pygame.image.load(f"images/dice-{i + 1}.png") for i in range(6)]
 board_image = pygame.image.load("images/board.png")
+white_piece_image = pygame.image.load("images/white.png")
+gray_piece_image = pygame.image.load("images/black.png")
+piece_images = {'white': white_piece_image, 'gray': gray_piece_image}
+
 
 def generate_client_keys():
     private_keys = []
@@ -168,7 +172,7 @@ def requestListen() :
                 if dataDecline != [] :
                     print('declined :', dataDecline)
                     state = None    
-
+        
 def draw_jail(screen):
     black_jail_x = WINDOW_SIZE // 2 
     for i in range(abs(board.xJail)):
@@ -184,7 +188,6 @@ def draw_board(screen):
     scaled_board_image = pygame.transform.scale(board_image, (WINDOW_SIZE, BOARD_SIZE))
     screen.blit(scaled_board_image, (0, 0))
     draw_jail(screen)
-
 
 # def draw_board(screen):
 #     pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
@@ -217,20 +220,50 @@ def draw_pieces(screen):
                 x = ((space - 11) * triangle_width) - triangle_width / 2
             else:
                 x = ((13 - space) * triangle_width) - triangle_width / 2
-            if(space >= 6 and space<=11):
+            if space >= 6 and space <= 11:
                 x -= triangle_width
-            if(space >= 18):
+            if space >= 18:
                 x += triangle_width
-            color = WHITE if count > 0 else GRAY
+
+            piece_image = piece_images['white'] if count > 0 else piece_images['gray']
+            piece_image = pygame.transform.scale(piece_image, (2.35 * PIECE_RADIUS, 2.35 * PIECE_RADIUS))
+
             abs_count = abs(count)
-            
+
             for i in range(abs_count):
-                if space > 11:  
+                if space > 11: 
                     y = (i * (piece_radius * 2)) + piece_radius
-                else:
+                else:  
                     y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
+
+                image_x = x - piece_image.get_width() // 2
+                image_y = y - piece_image.get_height() // 2
+
+                screen.blit(piece_image, (image_x, image_y))
+
+
+# def draw_pieces(screen):
+#     for space, count in board.myBoard.items():
+#         if count != 0:
+#             piece_radius = PIECE_RADIUS
+#             if space > 11:
+#                 x = ((space - 11) * triangle_width) - triangle_width / 2
+#             else:
+#                 x = ((13 - space) * triangle_width) - triangle_width / 2
+#             if(space >= 6 and space<=11):
+#                 x -= triangle_width
+#             if(space >= 18):
+#                 x += triangle_width
+#             color = WHITE if count > 0 else GRAY
+#             abs_count = abs(count)
+            
+#             for i in range(abs_count):
+#                 if space > 11:  
+#                     y = (i * (piece_radius * 2)) + piece_radius
+#                 else:
+#                     y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
                 
-                pygame.draw.circle(screen, color, (x, y), piece_radius)
+#                 pygame.draw.circle(screen, color, (x, y), piece_radius)
 
 def draw_dice(screen, font):
     if current_roll:
