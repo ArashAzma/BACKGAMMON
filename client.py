@@ -11,6 +11,8 @@ import threading
 import pygame
 import sys
 
+dice_images = [pygame.image.load(f"images/dice-{i + 1}.png") for i in range(6)]
+
 def generate_client_keys():
     private_keys = []
     public_keys = []
@@ -228,11 +230,10 @@ def draw_dice(screen, font):
         dice_size = 40
         x_offset = WINDOW_SIZE - 100
         y_offset = BOARD_SIZE // 2
-        
+
         for i, roll in enumerate(current_roll):
-            pygame.draw.rect(screen, WHITE, (x_offset, y_offset + (i * 50), dice_size, dice_size))
-            text = font.render(str(roll), True, BLACK)
-            screen.blit(text, (x_offset + 15, y_offset + (i * 50) + 10))
+            dice_image = pygame.transform.scale(dice_images[roll - 1], (dice_size, dice_size))
+            screen.blit(dice_image, (x_offset, y_offset + (i * (dice_size + 10))))
 
 def draw_chat(screen, font):
     chat_surface = pygame.Surface((WINDOW_SIZE, CHAT_HEIGHT))
