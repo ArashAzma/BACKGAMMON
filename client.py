@@ -463,7 +463,7 @@ def send_game_state_to_server():
 
 def game_loop(opp_socket, screen, font):
     global input_text, messages, is_my_turn, my_color, board, game
-    game = True
+    game = False
     clock = pygame.time.Clock()
     
     if my_address[1] > opponent[1]:
@@ -547,18 +547,19 @@ def get_opp_message(opp_socket):
             data = opp_socket.recv(BUFFER_SIZE)
             if not data:
                 break
-            if data.decode() == "play"and state == "wait":
-                again = True
-                state = None
-            elif data.decode() == "play" :
-                print("your opponent wants to play again")
-                print("enter play if u want too")
-                again = True
-                state = "wait"
-            elif data.decode() == "noPlay" :
-                print("your opponent left the game")
-                print("enter anything to leave the game")
-                state = None 
+            if not game :
+                if data.decode() == "play"and state == "wait":
+                    again = True
+                    state = None
+                elif data.decode() == "play" :
+                    print("your opponent wants to play again")
+                    print("enter play if u want too")
+                    again = True
+                    state = "wait"
+                elif data.decode() == "noPlay" :
+                    print("your opponent left the game")
+                    print("enter anything to leave the game")
+                    state = None 
             else :
                 handle_network_message(data)
         except ConnectionResetError:

@@ -206,6 +206,7 @@ def handle_client(conn, addr):
                 serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
                 serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
                 try :
+                    requests_list.remove(entry for entry in accepts if entry.split(";")[0] == message.split(";")[0] and entry.split(";")[1] == message.split(";")[1])    
                     accepts.remove(entry for entry in accepts if entry.split(";")[1] == message)
                     declines.remove(entry for entry in declines if entry.split(";")[1] == message)
                 except Exception:
