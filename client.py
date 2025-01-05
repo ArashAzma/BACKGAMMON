@@ -28,7 +28,9 @@ opponent = None
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 private_keys, public_keys = generate_client_keys()
 my_address = ""
-
+requests = []
+onlines = []
+    
 messages = []
 input_text = ""
 
@@ -105,8 +107,7 @@ def send_request() :
 
 def requestListen() :
 
-    requests = []
-    onlines = []
+    global requests, onlines
     global client_socket, requested, private_keys, alone, state
     while alone:
         message = f"{my_address}"
@@ -660,8 +661,15 @@ def start_game():
     game_loop(opp_socket, screen, font)
 
 def start_client():
+    global opponent, alone, requests, onlines
     if handshake():
-        if connect_to_server():
-            start_game()
+        while(True) :
+            opponent = None
+            alone = True
+            onlines = []
+            requests = []
+            print("you finished the game")
+            if connect_to_server():
+                start_game()
     
 start_client()
