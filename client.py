@@ -12,6 +12,7 @@ import pygame
 import sys
 
 dice_images = [pygame.image.load(f"images/dice-{i + 1}.png") for i in range(6)]
+board_image = pygame.image.load("images/board.png")
 
 def generate_client_keys():
     private_keys = []
@@ -180,27 +181,33 @@ def draw_jail(screen):
         pygame.draw.circle(screen, WHITE, (white_jail_x, y), PIECE_RADIUS)
 
 def draw_board(screen):
-    pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
-    
-    for i in range(13):
-        if(i==6): 
-            continue
-        x = (i * triangle_width)
-        color = BEIGE if i % 2 == 0 else BLACK
-        pygame.draw.polygon(screen, color, [
-            (x, 0),
-            (x + triangle_width, 0),
-            (x + triangle_width/2, triangle_height)
-        ])
-        
-        color = BEIGE if i % 2 == 1 else BLACK
-        pygame.draw.polygon(screen, color, [
-            (x, BOARD_SIZE),
-            (x + triangle_width, BOARD_SIZE),
-            (x + triangle_width/2, BOARD_SIZE - triangle_height)
-        ])
-    
+    scaled_board_image = pygame.transform.scale(board_image, (WINDOW_SIZE, BOARD_SIZE))
+    screen.blit(scaled_board_image, (0, 0))
     draw_jail(screen)
+
+
+# def draw_board(screen):
+#     pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
+    
+#     for i in range(13):
+#         if(i==6): 
+#             continue
+#         x = (i * triangle_width)
+#         color = BEIGE if i % 2 == 0 else BLACK
+#         pygame.draw.polygon(screen, color, [
+#             (x, 0),
+#             (x + triangle_width, 0),
+#             (x + triangle_width/2, triangle_height)
+#         ])
+        
+#         color = BEIGE if i % 2 == 1 else BLACK
+#         pygame.draw.polygon(screen, color, [
+#             (x, BOARD_SIZE),
+#             (x + triangle_width, BOARD_SIZE),
+#             (x + triangle_width/2, BOARD_SIZE - triangle_height)
+#         ])
+    
+#     draw_jail(screen)
 
 def draw_pieces(screen):
     for space, count in board.myBoard.items():
@@ -368,7 +375,6 @@ def handle_jail_move(pos, opp_socket):
                     if moves_left == 0:
                         end_turn(opp_socket)
                     break
-        # end_turn(opp_socket)
                 
     else:  # BLACK
         valid_spaces = [i for i in range(18, 24)]
@@ -386,7 +392,6 @@ def handle_jail_move(pos, opp_socket):
                     if moves_left == 0:
                         end_turn(opp_socket)
                     break
-        # end_turn(opp_socket)
 
 def handle_normal_move(pos, opp_socket):
     global selected_piece, moves_left, current_roll
