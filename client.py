@@ -189,28 +189,30 @@ def draw_board(screen):
     screen.blit(scaled_board_image, (0, 0))
     draw_jail(screen)
 
-# def draw_board(screen):
-#     pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
+'''
+def draw_board(screen):
+    pygame.draw.rect(screen, BROWN, (0, 0, WINDOW_SIZE, BOARD_SIZE))
     
-#     for i in range(13):
-#         if(i==6): 
-#             continue
-#         x = (i * triangle_width)
-#         color = BEIGE if i % 2 == 0 else BLACK
-#         pygame.draw.polygon(screen, color, [
-#             (x, 0),
-#             (x + triangle_width, 0),
-#             (x + triangle_width/2, triangle_height)
-#         ])
+    for i in range(13):
+        if(i==6): 
+            continue
+        x = (i * triangle_width)
+        color = BEIGE if i % 2 == 0 else BLACK
+        pygame.draw.polygon(screen, color, [
+            (x, 0),
+            (x + triangle_width, 0),
+            (x + triangle_width/2, triangle_height)
+        ])
         
-#         color = BEIGE if i % 2 == 1 else BLACK
-#         pygame.draw.polygon(screen, color, [
-#             (x, BOARD_SIZE),
-#             (x + triangle_width, BOARD_SIZE),
-#             (x + triangle_width/2, BOARD_SIZE - triangle_height)
-#         ])
+        color = BEIGE if i % 2 == 1 else BLACK
+        pygame.draw.polygon(screen, color, [
+            (x, BOARD_SIZE),
+            (x + triangle_width, BOARD_SIZE),
+            (x + triangle_width/2, BOARD_SIZE - triangle_height)
+        ])
     
-#     draw_jail(screen)
+    draw_jail(screen)
+'''
 
 def draw_pieces(screen):
     for space, count in board.myBoard.items():
@@ -241,29 +243,30 @@ def draw_pieces(screen):
 
                 screen.blit(piece_image, (image_x, image_y))
 
-
-# def draw_pieces(screen):
-#     for space, count in board.myBoard.items():
-#         if count != 0:
-#             piece_radius = PIECE_RADIUS
-#             if space > 11:
-#                 x = ((space - 11) * triangle_width) - triangle_width / 2
-#             else:
-#                 x = ((13 - space) * triangle_width) - triangle_width / 2
-#             if(space >= 6 and space<=11):
-#                 x -= triangle_width
-#             if(space >= 18):
-#                 x += triangle_width
-#             color = WHITE if count > 0 else GRAY
-#             abs_count = abs(count)
+'''
+def draw_pieces(screen):
+    for space, count in board.myBoard.items():
+        if count != 0:
+            piece_radius = PIECE_RADIUS
+            if space > 11:
+                x = ((space - 11) * triangle_width) - triangle_width / 2
+            else:
+                x = ((13 - space) * triangle_width) - triangle_width / 2
+            if(space >= 6 and space<=11):
+                x -= triangle_width
+            if(space >= 18):
+                x += triangle_width
+            color = WHITE if count > 0 else GRAY
+            abs_count = abs(count)
             
-#             for i in range(abs_count):
-#                 if space > 11:  
-#                     y = (i * (piece_radius * 2)) + piece_radius
-#                 else:
-#                     y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
+            for i in range(abs_count):
+                if space > 11:  
+                    y = (i * (piece_radius * 2)) + piece_radius
+                else:
+                    y = BOARD_SIZE - (i * (piece_radius * 2)) - piece_radius
                 
-#                 pygame.draw.circle(screen, color, (x, y), piece_radius)
+                pygame.draw.circle(screen, color, (x, y), piece_radius)
+'''
 
 def draw_dice(screen, font):
     if current_roll:
@@ -738,7 +741,6 @@ def start_game():
     while state == "wait" :
         time.sleep(0.1)
         
-
 def start_client():
     global opponent, alone, again, requests, onlines
     if handshake():
