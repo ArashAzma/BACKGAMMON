@@ -200,17 +200,20 @@ def handle_client(conn, addr):
                 requests_list.append(message)
             elif protocol == MessageType.ACCEPT.value:
                 accepts.append(message)
+                for entry in requests_list :
+                    if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0]):
+                        requests_list.remove(entry)
+                              
+                # requests_list.remove(entry for entry in requests_list if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0])) 
             elif protocol == MessageType.DECLINE.value:
-                declines.append(message)
+                declines.append(message)    
+                # for entry in requests_list :
+                #     if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0]):
+                #         requests_list.remove(entry)
             elif protocol == MessageType.ANYACCEPT.value:
                 serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
                 serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
-                try :
-                    requests_list.remove(entry for entry in accepts if entry.split(";")[0] == message.split(";")[0] and entry.split(";")[1] == message.split(";")[1])    
-                    accepts.remove(entry for entry in accepts if entry.split(";")[1] == message)
-                    declines.remove(entry for entry in declines if entry.split(";")[1] == message)
-                except Exception:
-                    pass
+                
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_accepts)
                 conn.sendall(response)
 
