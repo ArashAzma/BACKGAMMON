@@ -161,4 +161,5 @@ The client and the server send their receiver windows to eachother in each messa
 ## Ending the game
 
 When players have 15 Free pieces it will send a message with the board using a FINISHED_GAME protocoll. It well then wait for a response. The server analysis the board and sends a message to the client based on the board state.
-If the game has ended the player sends a message to other player and they disconnect. 
+If the game has ended the player sends a message to other player, Then they get a choice of playing with the same person again or going back to the lobby to play with another person.
+
