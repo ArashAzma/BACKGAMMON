@@ -609,7 +609,7 @@ def get_opp_message(opp_socket):
                     print("enter play if u want too")
                     again = True
                     state = "wait"
-                elif data.decode() == "noPlay" :
+                elif data.decode() == "decline" :
                     print("your opponent left the game")
                     print("enter anything to leave the game")
                     state = None 
