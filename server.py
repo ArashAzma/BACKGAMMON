@@ -203,13 +203,11 @@ def handle_client(conn, addr):
                 for entry in requests_list :
                     if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0]):
                         requests_list.remove(entry)
-                              
-                # requests_list.remove(entry for entry in requests_list if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0])) 
             elif protocol == MessageType.DECLINE.value:
                 declines.append(message)    
-                # for entry in requests_list :
-                #     if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0]):
-                #         requests_list.remove(entry)
+                for entry in requests_list :
+                    if (entry.split(";")[0] == message.split(";")[1] and entry.split(";")[1] == message.split(";")[0]):
+                        requests_list.remove(entry)
             elif protocol == MessageType.ANYACCEPT.value:
                 serialized_accepts = pickle.dumps([entry.split(";")[0] for entry in accepts if entry.split(";")[1] == message])
                 serialized_declines = pickle.dumps([entry.split(";")[0] for entry in declines if entry.split(";")[1] == message])
@@ -221,6 +219,19 @@ def handle_client(conn, addr):
 
                 response = create_client_message(MessageType.ANYACCEPTRES.value, serialized_declines)
                 conn.sendall(response)           
+                try :    
+                    for entry in declines :
+                        if (entry.split(";")[1] == message):
+                            declines.remove(entry)
+                except Exception :
+                    pass
+
+                try :    
+                    for entry in accepts :
+                        if (entry.split(";")[1] == message):
+                            accepts.remove(entry)
+                except Exception :
+                    pass
             elif protocol == MessageType.ROLL_DICE.value:
                 rolls = roll_dice()
                 serialized_rolls = pickle.dumps(rolls)

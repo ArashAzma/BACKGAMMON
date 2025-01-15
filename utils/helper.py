@@ -35,7 +35,10 @@ def show_requests(clients, my_address):
                 result.append(eval(part))
     
     users = result.copy()
-    users.remove(my_address)
+    try:
+        users.remove(my_address)
+    except Exception:
+        pass
     print('\nRequests :')
     if(len(users) > 0):
         for client in users:
